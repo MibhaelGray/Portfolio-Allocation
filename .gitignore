@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Build output
+frontend/dist/
+
+# Environment
+.env
+.env.*
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Generated artifacts
+Portfolio_Allocation_Mathematics.pdf
+generate_math_pdf.py
+MATHEMATICS.md
+
+# Temp files
+*.tmp
+*.log
+=1.13.0

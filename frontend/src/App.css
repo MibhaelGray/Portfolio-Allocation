@@ -1,0 +1,576 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #faf9f6;
+  color: #1a1a1a;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+#root { width: 100%; }
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 3.5rem 2rem 4rem;
+}
+
+/* ── Header ─────────────────────────────────── */
+header {
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid #d4d0c8;
+  padding-bottom: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+h1 {
+  font-family: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  font-size: 2.6rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #111;
+}
+
+/* ── Nav ────────────────────────────────────── */
+.nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav a {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #8a8279;
+  padding-bottom: 0.15rem;
+  border-bottom: 1.5px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.nav a:hover { color: #3a3530; }
+
+.nav a.active {
+  color: #1a1a1a;
+  border-bottom-color: #1a1a1a;
+}
+
+/* ── Controls ───────────────────────────────── */
+.controls {
+  background: transparent;
+  border: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+/* Ticker manager */
+.ticker-input-row { display: flex; gap: 0.5rem; }
+.ticker-input-row input {
+  flex: 1;
+  padding: 0.55rem 0.75rem;
+  background: #fff;
+  border: 1px solid #c8c3ba;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+}
+.ticker-input-row input::placeholder { color: #a09a90; }
+.ticker-input-row input:focus { outline: none; border-color: #8b7355; }
+
+.ticker-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f0ede8;
+  border: 1px solid #d4d0c8;
+  border-radius: 3px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #3a3530;
+}
+.chip-remove {
+  background: none;
+  border: none;
+  color: #a09a90;
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0;
+  margin-left: 0.1rem;
+}
+.chip-remove:hover { color: #c0392b; }
+
+/* Settings */
+.settings-panel { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+.settings-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8279;
+}
+.settings-panel input {
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  border: 1px solid #c8c3ba;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-size: 0.92rem;
+  font-family: 'Inter', sans-serif;
+  width: 150px;
+}
+.settings-panel input:focus { outline: none; border-color: #8b7355; }
+
+/* ── Buttons ────────────────────────────────── */
+button {
+  padding: 0.5rem 1.25rem;
+  background: #1a1a1a;
+  border: none;
+  border-radius: 3px;
+  color: #faf9f6;
+  font-size: 0.82rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+button:hover:not(:disabled) { background: #333; }
+button:disabled { opacity: 0.35; cursor: not-allowed; }
+.calculate-btn {
+  align-self: flex-start;
+  padding: 0.6rem 2rem;
+  font-size: 0.82rem;
+}
+
+/* ── Divider before results ─────────────────── */
+.results {
+  margin-top: 0;
+  border-top: 2px solid #1a1a1a;
+  padding-top: 1.5rem;
+}
+
+.results-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.results-header h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.summary {
+  font-size: 0.82rem;
+  color: #8a8279;
+  letter-spacing: 0.02em;
+}
+
+/* ── Error ──────────────────────────────────── */
+.error-panel {
+  background: #fdf2f0;
+  border-left: 3px solid #c0392b;
+  border-radius: 0;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+}
+.fetch-error { color: #c0392b; font-weight: 600; }
+.failed-header { color: #8b5e3c; margin-bottom: 0.4rem; font-weight: 500; }
+.error-panel ul { padding-left: 1.2rem; }
+.error-panel li { color: #6b4226; margin: 0.15rem 0; }
+
+/* ── Table ──────────────────────────────────── */
+.table-wrapper { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+th, td {
+  padding: 0.6rem 0.9rem;
+  text-align: right;
+  border-bottom: 1px solid #e0dcd5;
+  white-space: nowrap;
+}
+
+th {
+  background: transparent;
+  color: #8a8279;
+  font-weight: 500;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 0.5rem;
+}
+
+td {
+  font-variant-numeric: tabular-nums;
+  color: #2a2520;
+}
+
+th:first-child, td:first-child,
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: #3a3530; }
+
+tr:hover td { background: #f5f2ed; }
+tr:last-child td { border-bottom: 2px solid #1a1a1a; }
+
+/* ── Methodology page ──────────────────────── */
+.methodology {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.15rem;
+  line-height: 1.75;
+  color: #2a2520;
+}
+
+.methodology h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 600;
+  color: #111;
+  margin-top: 2.75rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.methodology h3 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  font-style: italic;
+  color: #3a3530;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.methodology p {
+  margin-bottom: 1rem;
+}
+
+.methodology ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.methodology ol li {
+  margin-bottom: 0.6rem;
+  padding-left: 0.25rem;
+}
+
+.methodology-lede {
+  font-size: 1.25rem;
+  line-height: 1.7;
+  color: #3a3530;
+}
+
+.methodology-lede:first-of-type {
+  margin-bottom: 0.75rem;
+}
+
+/* Formula blocks */
+.formula {
+  background: #f5f2ed;
+  border-left: 3px solid #c8c3ba;
+  padding: 1rem 1.5rem;
+  margin: 1.25rem 0;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #1a1a1a;
+  letter-spacing: 0.01em;
+}
+
+/* Methodology table */
+.methodology-table {
+  margin: 1.25rem 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+}
+
+.methodology-table th {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+}
+
+.methodology-table td {
+  font-family: 'Inter', sans-serif;
+  white-space: normal;
+  color: #3a3530;
+}
+
+/* Footer link */
+.methodology-footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #d4d0c8;
+}
+
+.methodology-footer a {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #8a8279;
+  transition: color 0.15s;
+}
+
+.methodology-footer a:hover { color: #1a1a1a; }
+
+/* ── Simulation section ────────────────────── */
+.simulation-section {
+  margin-top: 2.5rem;
+  border-top: 1px solid #d4d0c8;
+  padding-top: 1.5rem;
+}
+
+.simulation-header h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 1rem;
+}
+
+.simulation-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.simulation-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.simulation-controls .control-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8279;
+}
+
+.simulation-controls select {
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  border: 1px solid #c8c3ba;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-size: 0.92rem;
+  font-family: 'Inter', sans-serif;
+  min-width: 130px;
+  cursor: pointer;
+}
+
+.simulation-controls select:focus {
+  outline: none;
+  border-color: #8b7355;
+}
+
+.simulate-btn {
+  padding: 0.6rem 2rem;
+  font-size: 0.82rem;
+  background: transparent;
+  color: #1a1a1a;
+  border: 1.5px solid #1a1a1a;
+}
+
+.simulate-btn:hover:not(:disabled) {
+  background: #1a1a1a;
+  color: #faf9f6;
+}
+
+.sim-loading {
+  font-size: 0.85rem;
+  color: #8a8279;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+/* ── Simulation results ────────────────────── */
+.simulation-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+/* Stats grid */
+.sim-stats h3 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.stat-card {
+  background: #f5f2ed;
+  border-radius: 3px;
+  padding: 0.75rem 1rem;
+}
+
+.stat-label {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8a8279;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #1a1a1a;
+}
+
+.stat-sub {
+  font-size: 0.78rem;
+  color: #8a8279;
+  font-variant-numeric: tabular-nums;
+  margin-top: 0.1rem;
+}
+
+/* Chart containers */
+.fan-chart-container h3,
+.histogram-container h3 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.chart-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  color: #8a8279;
+  font-weight: 400;
+  margin-bottom: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+/* Fan chart tooltip */
+.fan-tooltip {
+  background: #fff;
+  border: 1px solid #d4d0c8;
+  border-radius: 3px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.78rem;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.fan-tooltip-header {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.3rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #e0dcd5;
+}
+
+.fan-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.1rem 0;
+  color: #3a3530;
+}
+
+.fan-tooltip-row span:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* GARCH table */
+.garch-section {
+  margin-top: 0.5rem;
+}
+
+.garch-toggle {
+  background: transparent;
+  border: none;
+  color: #8a8279;
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0.4rem 0;
+  transition: color 0.15s;
+}
+
+.garch-toggle:hover { color: #3a3530; background: transparent; }
+
+.garch-table {
+  margin-top: 0.75rem;
+}
+
+.garch-table th {
+  font-size: 0.65rem;
+}
+
+.garch-table td {
+  font-size: 0.82rem;
+}
+
+.warn-val {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .simulation-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

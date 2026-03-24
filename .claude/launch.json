@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "FastAPI Backend",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/michaelgray/Documents/Portfolio Allocation/start_backend.js"],
+      "port": 8000
+    },
+    {
+      "name": "Vite Frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/michaelgray/Documents/Portfolio Allocation/frontend"],
+      "port": 5173
+    }
+  ]
+}
