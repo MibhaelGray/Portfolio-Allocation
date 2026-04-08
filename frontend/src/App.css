@@ -147,6 +147,14 @@ h1 {
 }
 .settings-panel input:focus { outline: none; border-color: #8b7355; }
 
+/* Hide number spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
 /* ── Buttons ────────────────────────────────── */
 button {
   padding: 0.6rem 1.25rem;
