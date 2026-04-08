@@ -66,7 +66,7 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
           <input
             className="amount-input"
             type="number"
-            placeholder="0"
+            placeholder="Amount"
             min={0}
             step={100}
             value={h.amount}
