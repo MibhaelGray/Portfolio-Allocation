@@ -21,10 +21,7 @@ function makeId() {
 }
 
 export default function MyPortfolioPage() {
-  const [holdings, setHoldings] = useState<Holding[]>([
-    { id: makeId(), ticker: '', amount: '' },
-    { id: makeId(), ticker: '', amount: '' },
-  ]);
+  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [lookback, setLookback] = useState(63);
   const [horizon, setHorizon] = useState(126);
@@ -141,7 +138,7 @@ export default function MyPortfolioPage() {
         </div>
       )}
 
-      {simResult && (
+      {simResult ? (
         <section className="simulation-results">
           <SimulationStats
             summary={simResult.summary}
@@ -152,6 +149,12 @@ export default function MyPortfolioPage() {
           <TerminalHistogram data={simResult.histogram} totalAllocation={total} />
           <GarchTable params={simResult.garch_params} />
         </section>
+      ) : !loading && validHoldings.length > 0 && (
+        <div className="empty-results">
+          <p className="empty-results-text">
+            Run simulation to see risk projections for your portfolio
+          </p>
+        </div>
       )}
 
       {simResult?.failed && simResult.failed.length > 0 && (

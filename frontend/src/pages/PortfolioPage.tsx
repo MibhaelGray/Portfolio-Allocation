@@ -56,25 +56,30 @@ export default function PortfolioPage() {
 
       <ErrorPanel failed={failed} fetchError={fetchError} />
 
-      {results.length > 0 && (
-        <section className="results">
-          <div className="results-header">
-            <h2>Results</h2>
-            <span className="summary">
-              {results.length} positions &nbsp;·&nbsp; Total:{' '}
-              {total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-            </span>
-          </div>
-          <ResultsTable data={results} />
-        </section>
-      )}
-
-      {results.length > 0 && (
-        <SimulationPanel
-          results={results}
-          allocation={allocation}
-          lookback={lookback}
-        />
+      {results.length > 0 ? (
+        <>
+          <section className="results">
+            <div className="results-header">
+              <h2>Results</h2>
+              <span className="summary">
+                {results.length} positions &nbsp;·&nbsp; Total:{' '}
+                {total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+              </span>
+            </div>
+            <ResultsTable data={results} />
+          </section>
+          <SimulationPanel
+            results={results}
+            allocation={allocation}
+            lookback={lookback}
+          />
+        </>
+      ) : !loading && (
+        <div className="empty-results">
+          <p className="empty-results-text">
+            Add tickers and calculate to see risk parity allocations
+          </p>
+        </div>
       )}
     </>
   );

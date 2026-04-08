@@ -5,6 +5,8 @@ interface Props {
   onChange: (tickers: string[]) => void;
 }
 
+const SUGGESTIONS = ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'AMZN'];
+
 export function TickerManager({ tickers, onChange }: Props) {
   const [input, setInput] = useState('');
 
@@ -49,6 +51,19 @@ export function TickerManager({ tickers, onChange }: Props) {
             <button onClick={() => remove(t)} aria-label={`Remove ${t}`} className="chip-remove">
               ×
             </button>
+          </span>
+        ))}
+        {tickers.length === 0 && SUGGESTIONS.filter(s => !tickers.includes(s)).map((s) => (
+          <span
+            key={s}
+            className="chip chip-ghost"
+            onClick={() => onChange([...tickers, s])}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === 'Enter' && onChange([...tickers, s])}
+          >
+            {s}
+            <span className="chip-plus">+</span>
           </span>
         ))}
       </div>

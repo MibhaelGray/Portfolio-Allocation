@@ -116,6 +116,25 @@ h1 {
   letter-spacing: 0.04em;
   color: #3a3530;
 }
+.chip-ghost {
+  background: transparent;
+  border: 1px dashed #c8c3ba;
+  color: #a09a90;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.chip-ghost:hover {
+  color: #3a3530;
+  border-color: #8a8279;
+  background: #f5f2ed;
+}
+.chip-plus {
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #c8c3ba;
+}
+.chip-ghost:hover .chip-plus { color: #8a8279; }
+
 .chip-remove {
   background: none;
   border: none;
@@ -187,6 +206,24 @@ button:disabled {
   align-self: flex-start;
   padding: 0.6rem 2rem;
   font-size: 0.82rem;
+}
+
+/* ── Empty states ──────────────────────────── */
+.empty-results {
+  border-top: 1px dashed #d4d0c8;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+  text-align: center;
+}
+
+.empty-results-text {
+  font-size: 0.88rem;
+  color: #b5b0a8;
+  font-style: italic;
+}
+
+.holdings-empty {
+  padding: 0.5rem 0;
 }
 
 /* ── Divider before results ─────────────────── */

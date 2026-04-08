@@ -23,7 +23,6 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
   }
 
   function removeHolding(id: string) {
-    if (holdings.length <= 1) return;
     onChange(holdings.filter(h => h.id !== id));
   }
 
@@ -53,45 +52,54 @@ export function HoldingsEditor({ holdings, onChange }: Props) {
 
   return (
     <div className="holdings-editor">
-      {holdings.map((h, i) => (
-        <div key={h.id} className="holding-row">
-          <input
-            className={`ticker-input${duplicates.has(h.ticker.trim()) ? ' input-error' : ''}`}
-            type="text"
-            placeholder="TICKER"
-            value={h.ticker}
-            onChange={e => updateHolding(h.id, 'ticker', e.target.value)}
-          />
-          <span className="amount-prefix">$</span>
-          <input
-            className="amount-input"
-            type="number"
-            placeholder="Amount"
-            min={0}
-            step={100}
-            value={h.amount}
-            onChange={e => updateHolding(h.id, 'amount', e.target.value)}
-            onKeyDown={e => handleAmountKeyDown(e, i)}
-          />
-          <button
-            className="holding-remove"
-            onClick={() => removeHolding(h.id)}
-            disabled={holdings.length <= 1}
-            title="Remove"
-          >
-            &times;
+      {holdings.length === 0 ? (
+        <div className="holdings-empty">
+          <button className="add-holding-btn" onClick={addHolding} type="button">
+            + Add Your First Holding
           </button>
         </div>
-      ))}
+      ) : (
+        <>
+          {holdings.map((h, i) => (
+            <div key={h.id} className="holding-row">
+              <input
+                className={`ticker-input${duplicates.has(h.ticker.trim()) ? ' input-error' : ''}`}
+                type="text"
+                placeholder="TICKER"
+                value={h.ticker}
+                onChange={e => updateHolding(h.id, 'ticker', e.target.value)}
+              />
+              <span className="amount-prefix">$</span>
+              <input
+                className="amount-input"
+                type="number"
+                placeholder="Amount"
+                min={0}
+                step={100}
+                value={h.amount}
+                onChange={e => updateHolding(h.id, 'amount', e.target.value)}
+                onKeyDown={e => handleAmountKeyDown(e, i)}
+              />
+              <button
+                className="holding-remove"
+                onClick={() => removeHolding(h.id)}
+                title="Remove"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
 
-      <button className="add-holding-btn" onClick={addHolding} type="button">
-        + Add Holding
-      </button>
+          <button className="add-holding-btn" onClick={addHolding} type="button">
+            + Add Holding
+          </button>
 
-      <p className="holdings-summary">
-        {validCount} holding{validCount !== 1 ? 's' : ''} &mdash; Total: $
-        {total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-      </p>
+          <p className="holdings-summary">
+            {validCount} holding{validCount !== 1 ? 's' : ''} &mdash; Total: $
+            {total.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </p>
+        </>
+      )}
     </div>
   );
 }
