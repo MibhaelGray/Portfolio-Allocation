@@ -164,7 +164,11 @@ button {
   transition: background 0.15s;
 }
 button:hover:not(:disabled) { background: #333; }
-button:disabled { opacity: 0.35; cursor: not-allowed; }
+button:disabled {
+  background: #d4d0c8;
+  color: #a09a90;
+  cursor: not-allowed;
+}
 .calculate-btn {
   align-self: flex-start;
   padding: 0.6rem 2rem;
