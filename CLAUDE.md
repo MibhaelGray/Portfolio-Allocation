@@ -10,9 +10,10 @@ Risk parity position sizing tool. Enter stock tickers, get correlation-aware, ri
 ## Key Files
 
 ### Backend
-- `backend/main.py` — FastAPI app, CORS, POST `/api/calculate`, GET `/health`
+- `backend/main.py` — FastAPI app, CORS, POST `/api/calculate`, POST `/api/simulate`, GET `/health`
 - `backend/calculator.py` — batch yfinance download, covariance matrix, risk parity optimizer (scipy SLSQP), risk contributions, currency detection via `fast_info`
-- `backend/models.py` — Pydantic v2 models (CalculateRequest, TickerResult with `currency` and `risk_contribution` fields, FailedTicker, CalculateResponse)
+- `backend/simulator.py` — GARCH(1,1)-t model fitting (parallel via ThreadPoolExecutor), Cholesky-correlated Monte Carlo simulation, fan chart percentiles, terminal histogram, VaR/CVaR/drawdown stats
+- `backend/models.py` — Pydantic v2 models (CalculateRequest, TickerResult with `currency` and `risk_contribution` fields, FailedTicker, CalculateResponse, SimulateRequest/Response)
 
 ### Frontend
 - `frontend/src/App.tsx` — Router with nav (Calculator / Methodology)
@@ -21,6 +22,9 @@ Risk parity position sizing tool. Enter stock tickers, get correlation-aware, ri
 - `frontend/src/components/ResultsTable.tsx` — Sortable table via @tanstack/react-table, currency-aware formatting
 - `frontend/src/components/TickerManager.tsx` — Add/remove ticker chips
 - `frontend/src/components/SettingsPanel.tsx` — Allocation amount + lookback days inputs
+- `frontend/src/components/SimulationPanel.tsx` — Monte Carlo simulation trigger and results container
+- `frontend/src/components/FanChart.tsx` — Recharts fan chart (percentile bands over time)
+- `frontend/src/components/SimulationStats.tsx` — VaR, CVaR, drawdown, probability of loss stats
 - `frontend/src/components/ErrorPanel.tsx` — Error display
 - `frontend/src/api/portfolioApi.ts` — Fetch wrapper, relative `/api/calculate` (proxied by Vite)
 - `frontend/src/types/portfolio.ts` — TypeScript interfaces
@@ -52,6 +56,6 @@ Light editorial aesthetic inspired by The Atlantic. EB Garamond for headings/met
 - **Default lookback**: 63 days (half of 6-month intended hold)
 - **Currency**: detected from yfinance fast_info, passed through full stack for correct symbol display
 
-## Planned Feature
+## Monte Carlo Simulation
 
-Monte Carlo simulation of portfolio return profile — correlated simulations using Cholesky decomposition, fan charts, terminal value histogram, VaR stats. New `/api/simulate` endpoint + Recharts visualization.
+GARCH(1,1) with Student-t innovations per asset, fitted in parallel. Correlated paths via Cholesky decomposition of standardized residual correlation matrix. Variance capped at 10x starting value to prevent explosion. Daily returns clamped to ±25%. Outputs: fan chart (5th–95th percentile bands), terminal value histogram, summary stats (mean/median return, annualized vol, VaR 5%, CVaR 5%, probability of loss, median max drawdown). Endpoint: POST `/api/simulate`.

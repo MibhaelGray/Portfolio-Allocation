@@ -564,6 +564,108 @@ tr:last-child td { border-bottom: 2px solid #1a1a1a; }
   font-weight: 600;
 }
 
+/* ── Holdings editor (My Portfolio) ───────── */
+.my-portfolio-intro h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.35rem;
+}
+
+.page-lede {
+  font-size: 0.88rem;
+  color: #8a8279;
+  margin-bottom: 1rem;
+}
+
+.holdings-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.holding-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.holding-row .ticker-input {
+  width: 120px;
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  border: 1px solid #c8c3ba;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+}
+
+.holding-row .ticker-input::placeholder {
+  text-transform: uppercase;
+  color: #a09a90;
+}
+
+.holding-row .amount-input {
+  width: 140px;
+  padding: 0.5rem 0.65rem;
+  background: #fff;
+  border: 1px solid #c8c3ba;
+  border-radius: 3px;
+  color: #1a1a1a;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.holding-row .amount-input::placeholder { color: #a09a90; }
+
+.holding-row input:focus { outline: none; border-color: #8b7355; }
+.holding-row input.input-error { border-color: #c0392b; }
+
+.amount-prefix {
+  font-size: 0.88rem;
+  color: #8a8279;
+  font-weight: 500;
+}
+
+.holding-remove {
+  background: none;
+  border: none;
+  color: #a09a90;
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+  line-height: 1;
+}
+.holding-remove:hover:not(:disabled) { color: #c0392b; background: transparent; }
+.holding-remove:disabled { opacity: 0.2; cursor: default; }
+
+.add-holding-btn {
+  align-self: flex-start;
+  background: transparent;
+  color: #8a8279;
+  border: 1px dashed #c8c3ba;
+  font-size: 0.78rem;
+  padding: 0.4rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.25rem;
+}
+.add-holding-btn:hover:not(:disabled) {
+  color: #3a3530;
+  border-color: #8a8279;
+  background: transparent;
+}
+
+.holdings-summary {
+  font-size: 0.82rem;
+  color: #8a8279;
+  margin-top: 0.25rem;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .stats-grid {

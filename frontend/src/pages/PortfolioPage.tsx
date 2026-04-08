@@ -7,14 +7,8 @@ import { SimulationPanel } from '../components/SimulationPanel';
 import { calculatePortfolio } from '../api/portfolioApi';
 import type { TickerResult, FailedTicker } from '../types/portfolio';
 
-const DEFAULT_TICKERS = [
-  'LITE', 'AAOI', 'SOI.PA', '000660.KS',
-  'BE', 'INTC', 'NVDA', 'ASML', 'LRCX',
-  'AMAT', 'ODFL', 'XPO', 'NET', 'APP',
-];
-
 export default function PortfolioPage() {
-  const [tickers, setTickers] = useState<string[]>(DEFAULT_TICKERS);
+  const [tickers, setTickers] = useState<string[]>([]);
   const [allocation, setAllocation] = useState(5000);
   const [lookback, setLookback] = useState(63);
   const [results, setResults] = useState<TickerResult[]>([]);
@@ -56,7 +50,7 @@ export default function PortfolioPage() {
           onClick={handleCalculate}
           disabled={loading || tickers.length === 0}
         >
-          {loading ? 'Calculating...' : 'Recalculate'}
+          {loading ? 'Calculating...' : results.length > 0 ? 'Recalculate' : 'Calculate'}
         </button>
       </section>
 
