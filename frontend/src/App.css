@@ -79,7 +79,8 @@ h1 {
 .ticker-input-row { display: flex; gap: 0.5rem; }
 .ticker-input-row input {
   flex: 1;
-  padding: 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem;
+  min-height: 44px;
   background: #fff;
   border: 1px solid #c8c3ba;
   border-radius: 3px;
@@ -134,7 +135,8 @@ h1 {
   color: #8a8279;
 }
 .settings-panel input {
-  padding: 0.5rem 0.65rem;
+  padding: 0.6rem 0.65rem;
+  min-height: 44px;
   background: #fff;
   border: 1px solid #c8c3ba;
   border-radius: 3px;
@@ -147,7 +149,8 @@ h1 {
 
 /* ── Buttons ────────────────────────────────── */
 button {
-  padding: 0.5rem 1.25rem;
+  padding: 0.6rem 1.25rem;
+  min-height: 44px;
   background: #1a1a1a;
   border: none;
   border-radius: 3px;
