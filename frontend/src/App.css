@@ -660,10 +660,177 @@ tr:last-child td { border-bottom: 2px solid #1a1a1a; }
   background: transparent;
 }
 
+/* ── CSV import zone (My Portfolio) ───────── */
+.csv-import-zone {
+  border: 2px dashed #c8c3ba;
+  border-radius: 3px;
+  padding: 1.75rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.csv-import-zone:hover {
+  border-color: #8b7355;
+  background: #f5f2ed;
+}
+
+.import-zone-text {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3a3530;
+  margin-bottom: 0.3rem;
+}
+
+.import-zone-hint {
+  font-size: 0.78rem;
+  color: #a09a90;
+}
+
+.holdings-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 0.25rem 0;
+}
+
+.holdings-divider::before,
+.holdings-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #d4d0c8;
+}
+
+.holdings-divider span {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a09a90;
+  white-space: nowrap;
+}
+
 .holdings-summary {
   font-size: 0.82rem;
   color: #8a8279;
   margin-top: 0.25rem;
+}
+
+/* ── CSV import modal ────────────────────────── */
+.csv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.csv-modal {
+  background: #faf9f6;
+  border: 1px solid #d4d0c8;
+  border-radius: 3px;
+  padding: 2rem;
+  max-width: 560px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.csv-modal-title {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.75rem;
+}
+
+.csv-modal-desc {
+  font-size: 0.85rem;
+  color: #8a8279;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.csv-dropzone {
+  border: 2px dashed #c8c3ba;
+  border-radius: 3px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.csv-dropzone:hover { border-color: #8b7355; }
+
+.dropzone-text {
+  font-size: 0.88rem;
+  color: #3a3530;
+  margin-bottom: 0.35rem;
+}
+
+.dropzone-hint {
+  font-size: 0.75rem;
+  color: #a09a90;
+}
+
+.csv-preview-meta {
+  font-size: 0.82rem;
+  color: #8a8279;
+  margin-bottom: 0.75rem;
+}
+
+.csv-preview-table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 0.75rem;
+}
+
+.csv-preview-table { width: 100%; }
+.csv-preview-table th { text-align: left; }
+.csv-preview-table td { text-align: left; }
+.csv-preview-table td:last-child { text-align: right; }
+.csv-preview-table th:last-child { text-align: right; }
+
+.csv-skipped {
+  font-size: 0.78rem;
+  color: #a09a90;
+  margin-bottom: 0.75rem;
+}
+
+.csv-error {
+  background: #fdf2f0;
+  border-left: 3px solid #c0392b;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #c0392b;
+}
+
+.csv-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.csv-btn-primary {
+  padding: 0.55rem 1.5rem;
+  font-size: 0.82rem;
+}
+
+.csv-btn-secondary {
+  padding: 0.55rem 1.25rem;
+  font-size: 0.82rem;
+  background: transparent;
+  color: #8a8279;
+  border: 1px solid #c8c3ba;
+}
+.csv-btn-secondary:hover:not(:disabled) {
+  color: #3a3530;
+  border-color: #8a8279;
+  background: transparent;
 }
 
 /* Responsive */

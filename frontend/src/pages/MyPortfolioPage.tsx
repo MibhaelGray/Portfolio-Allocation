@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { simulatePortfolio } from '../api/portfolioApi';
 import { HoldingsEditor, type Holding } from '../components/HoldingsEditor';
+import { CsvImportModal } from '../components/CsvImportModal';
 import { FanChart } from '../components/FanChart';
 import { TerminalHistogram } from '../components/TerminalHistogram';
 import { SimulationStats } from '../components/SimulationStats';
@@ -24,6 +25,7 @@ export default function MyPortfolioPage() {
     { id: makeId(), ticker: '', amount: '' },
     { id: makeId(), ticker: '', amount: '' },
   ]);
+  const [importOpen, setImportOpen] = useState(false);
   const [lookback, setLookback] = useState(63);
   const [horizon, setHorizon] = useState(126);
   const [numSims, setNumSims] = useState(5000);
@@ -67,9 +69,24 @@ export default function MyPortfolioPage() {
       <section className="controls">
         <div className="my-portfolio-intro">
           <h2>My Portfolio</h2>
-          <p className="page-lede">
-            Enter your holdings below to run a Monte Carlo simulation on your actual portfolio.
-          </p>
+        </div>
+
+        <div
+          className="csv-import-zone"
+          onClick={() => setImportOpen(true)}
+        >
+          <p className="import-zone-text">Import from CSV</p>
+          <p className="import-zone-hint">Drag a broker export here or click to upload</p>
+        </div>
+
+        <CsvImportModal
+          open={importOpen}
+          onClose={() => setImportOpen(false)}
+          onImport={setHoldings}
+        />
+
+        <div className="holdings-divider">
+          <span>or enter manually</span>
         </div>
 
         <HoldingsEditor holdings={holdings} onChange={setHoldings} />
