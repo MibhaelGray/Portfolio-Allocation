@@ -52,7 +52,7 @@ h1 {
   text-transform: uppercase;
   text-decoration: none;
   color: #8a8279;
-  padding-bottom: 0.15rem;
+  padding: 0.5rem 0;
   border-bottom: 1.5px solid transparent;
   transition: color 0.15s, border-color 0.15s;
 }
