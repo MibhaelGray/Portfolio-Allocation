@@ -2,6 +2,12 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Focus-visible for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid #8b7355;
+  outline-offset: 2px;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: #faf9f6;
