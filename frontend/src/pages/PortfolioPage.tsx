@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TickerManager } from '../components/TickerManager';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ResultsTable } from '../components/ResultsTable';
 import { ErrorPanel } from '../components/ErrorPanel';
 import { SimulationPanel } from '../components/SimulationPanel';
+import { ExportButton } from '../components/ExportButton';
 import { calculatePortfolio } from '../api/portfolioApi';
+import { exportToPdf } from '../utils/exportPdf';
 import type { TickerResult, FailedTicker } from '../types/portfolio';
 
 export default function PortfolioPage() {
@@ -15,6 +17,7 @@ export default function PortfolioPage() {
   const [failed, setFailed] = useState<FailedTicker[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   async function handleCalculate() {
     if (tickers.length === 0) return;
@@ -57,7 +60,7 @@ export default function PortfolioPage() {
       <ErrorPanel failed={failed} fetchError={fetchError} />
 
       {results.length > 0 ? (
-        <>
+        <div ref={resultsRef}>
           <section className="results">
             <div className="results-header">
               <h2>Results</h2>
@@ -65,6 +68,22 @@ export default function PortfolioPage() {
                 {results.length} positions &nbsp;·&nbsp; Total:{' '}
                 {total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
               </span>
+              <ExportButton onExport={async () => {
+                if (!resultsRef.current) return;
+                const sections = resultsRef.current.querySelectorAll<HTMLElement>(
+                  '.results, .sim-stats, .fan-chart-container, .histogram-container'
+                );
+                await exportToPdf({
+                  title: 'Risk Parity Allocation',
+                  subtitle: `${results.length} positions · ${total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+                  metadata: [
+                    { label: 'Allocation', value: `$${allocation.toLocaleString()}` },
+                    { label: 'Lookback', value: `${lookback} days` },
+                  ],
+                  filename: 'risk-parity-allocation.pdf',
+                  sections: Array.from(sections),
+                });
+              }} />
             </div>
             <ResultsTable data={results} />
           </section>
@@ -73,7 +92,7 @@ export default function PortfolioPage() {
             allocation={allocation}
             lookback={lookback}
           />
-        </>
+        </div>
       ) : !loading && (
         <div className="empty-results">
           <p className="empty-results-text">

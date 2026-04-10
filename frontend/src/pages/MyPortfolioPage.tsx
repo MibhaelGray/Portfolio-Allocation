@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { simulatePortfolio } from '../api/portfolioApi';
 import { HoldingsEditor, type Holding } from '../components/HoldingsEditor';
 import { CsvImportModal } from '../components/CsvImportModal';
@@ -6,6 +6,8 @@ import { FanChart } from '../components/FanChart';
 import { TerminalHistogram } from '../components/TerminalHistogram';
 import { SimulationStats } from '../components/SimulationStats';
 import { GarchTable } from '../components/GarchTable';
+import { ExportButton } from '../components/ExportButton';
+import { exportToPdf } from '../utils/exportPdf';
 import type { SimulateResponse } from '../types/portfolio';
 
 const HORIZON_OPTIONS = [
@@ -20,10 +22,23 @@ function makeId() {
   return String(Date.now()) + Math.random().toString(36).slice(2, 6);
 }
 
+const LOOKBACK_OPTIONS = [
+  { label: '1 month',   days: 21  },
+  { label: '2 months',  days: 42  },
+  { label: '3 months',  days: 63  },
+  { label: '6 months',  days: 126 },
+  { label: '9 months',  days: 189 },
+  { label: '1 year',    days: 252 },
+  { label: '2 years',   days: 504 },
+];
+
+const PRESET_DAYS = new Set(LOOKBACK_OPTIONS.map(o => o.days));
+
 export default function MyPortfolioPage() {
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [importOpen, setImportOpen] = useState(false);
   const [lookback, setLookback] = useState(63);
+  const [customLookback, setCustomLookback] = useState(false);
   const [horizon, setHorizon] = useState(126);
   const [numSims, setNumSims] = useState(5000);
   const [simResult, setSimResult] = useState<SimulateResponse | null>(null);
@@ -38,6 +53,7 @@ export default function MyPortfolioPage() {
   const tickers = validHoldings.map(h => h.ticker.trim());
   const hasDuplicates = new Set(tickers).size !== tickers.length;
   const canSubmit = validHoldings.length >= 1 && total > 0 && !hasDuplicates && !loading;
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   async function handleSimulate() {
     setLoading(true);
@@ -91,11 +107,40 @@ export default function MyPortfolioPage() {
         <div className="simulation-controls">
           <label>
             <span className="control-label">Lookback</span>
-            <select value={lookback} onChange={e => setLookback(Number(e.target.value))}>
-              <option value={63}>63 days</option>
-              <option value={126}>126 days</option>
-              <option value={252}>252 days</option>
-            </select>
+            {customLookback ? (
+              <div className="lookback-custom">
+                <input
+                  type="number"
+                  min={5}
+                  max={504}
+                  value={lookback}
+                  onChange={e => setLookback(Number(e.target.value))}
+                  placeholder="Trading days"
+                />
+                <button
+                  type="button"
+                  className="lookback-toggle"
+                  onClick={() => { setCustomLookback(false); setLookback(63); }}
+                >
+                  Presets
+                </button>
+              </div>
+            ) : (
+              <div className="lookback-custom">
+                <select value={lookback} onChange={e => {
+                  if (e.target.value === 'custom') {
+                    setCustomLookback(true);
+                  } else {
+                    setLookback(Number(e.target.value));
+                  }
+                }}>
+                  {LOOKBACK_OPTIONS.map(o => (
+                    <option key={o.days} value={o.days}>{o.label}</option>
+                  ))}
+                  <option value="custom">Custom...</option>
+                </select>
+              </div>
+            )}
           </label>
 
           <label>
@@ -139,7 +184,27 @@ export default function MyPortfolioPage() {
       )}
 
       {simResult ? (
-        <section className="simulation-results">
+        <section className="simulation-results" ref={resultsRef}>
+          <div className="results-header">
+            <h2>Simulation Results</h2>
+            <ExportButton onExport={async () => {
+              if (!resultsRef.current) return;
+              const sections = resultsRef.current.querySelectorAll<HTMLElement>(
+                '.sim-stats, .fan-chart-container, .histogram-container'
+              );
+              await exportToPdf({
+                title: 'Portfolio Simulation Report',
+                subtitle: `${validHoldings.length} holdings · $${total.toLocaleString()}`,
+                metadata: [
+                  { label: 'Lookback', value: `${lookback} days` },
+                  { label: 'Horizon', value: `${horizon} days` },
+                  { label: 'Simulations', value: numSims.toLocaleString() },
+                ],
+                filename: 'portfolio-simulation.pdf',
+                sections: Array.from(sections),
+              });
+            }} />
+          </div>
           <SimulationStats
             summary={simResult.summary}
             totalAllocation={total}

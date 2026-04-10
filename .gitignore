@@ -28,3 +28,4 @@ MATHEMATICS.md
 *.tmp
 *.log
 =1.13.0
+.gstack/

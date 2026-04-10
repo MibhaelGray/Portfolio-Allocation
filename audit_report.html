@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quantitative Methods Audit — Portfolio Allocation Tool</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --cream: #faf9f6;
+    --ink: #1a1a1a;
+    --warm-gray: #8a8279;
+    --border: #c8c3ba;
+    --accent: #8b7355;
+    --critical-bg: #fdf2f2;
+    --critical-border: #c53030;
+    --material-bg: #fffbeb;
+    --material-border: #b7791f;
+    --minor-bg: #f0fdf4;
+    --minor-border: #38a169;
+    --good-bg: #ebf8ff;
+    --good-border: #3182ce;
+  }
+
+  @page {
+    size: A4;
+    margin: 2.2cm 2cm 2.5cm 2cm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-family: 'Inter', sans-serif;
+      font-size: 8pt;
+      color: #8a8279;
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'EB Garamond', 'Georgia', serif;
+    font-size: 11pt;
+    line-height: 1.55;
+    color: var(--ink);
+    background: white;
+  }
+
+  /* ─── Cover page ─── */
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 90vh;
+    padding: 3cm 0;
+  }
+  .cover-rule {
+    width: 4cm;
+    height: 2px;
+    background: var(--ink);
+    margin-bottom: 1.5rem;
+  }
+  .cover h1 {
+    font-family: 'EB Garamond', serif;
+    font-size: 28pt;
+    font-weight: 600;
+    line-height: 1.15;
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  .cover .subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 11pt;
+    font-weight: 500;
+    color: var(--warm-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 2.5rem;
+  }
+  .cover-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 9pt;
+    color: var(--warm-gray);
+    line-height: 1.8;
+  }
+  .cover-meta strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .cover-verdict {
+    margin-top: 2.5rem;
+    padding: 1rem 1.2rem;
+    border-left: 3px solid var(--accent);
+    background: var(--cream);
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  .cover-verdict strong {
+    font-family: 'Inter', sans-serif;
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── Section headings ─── */
+  h2 {
+    font-family: 'EB Garamond', serif;
+    font-size: 18pt;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: 'EB Garamond', serif;
+    font-size: 14pt;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  h4 {
+    font-family: 'Inter', sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  p { margin-bottom: 0.7rem; }
+
+  /* ─── Finding cards ─── */
+  .finding {
+    margin: 1.2rem 0;
+    border-radius: 3px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .finding-header {
+    padding: 0.5rem 0.8rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 9.5pt;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .finding-header .tag {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.6);
+  }
+
+  .finding.critical .finding-header { background: var(--critical-border); color: white; }
+  .finding.critical .finding-body { border: 1px solid var(--critical-border); border-top: none; background: var(--critical-bg); }
+  .finding.material .finding-header { background: var(--material-border); color: white; }
+  .finding.material .finding-body { border: 1px solid var(--material-border); border-top: none; background: var(--material-bg); }
+  .finding.minor .finding-header { background: var(--minor-border); color: white; }
+  .finding.minor .finding-body { border: 1px solid var(--minor-border); border-top: none; background: var(--minor-bg); }
+  .finding.good .finding-header { background: var(--good-border); color: white; }
+  .finding.good .finding-body { border: 1px solid var(--good-border); border-top: none; background: var(--good-bg); }
+
+  .finding-body {
+    padding: 0.8rem;
+  }
+
+  .track {
+    margin-bottom: 0.8rem;
+  }
+  .track-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 8pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--warm-gray);
+    margin-bottom: 0.3rem;
+    padding-bottom: 0.2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ─── Code ─── */
+  code {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 9pt;
+    background: rgba(0,0,0,0.05);
+    padding: 1px 4px;
+    border-radius: 2px;
+  }
+  pre {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 8.5pt;
+    background: rgba(0,0,0,0.04);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.6rem 0.8rem;
+    overflow-x: auto;
+    line-height: 1.5;
+    margin: 0.5rem 0;
+  }
+
+  /* ─── Math ─── */
+  .math {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    margin: 0.5rem 0;
+    padding: 0.4rem 0;
+    text-align: center;
+    font-size: 11pt;
+  }
+  .math-inline { font-style: italic; }
+
+  /* ─── Tables ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+    margin: 0.6rem 0;
+  }
+  th {
+    font-family: 'Inter', sans-serif;
+    font-size: 8.5pt;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid var(--ink);
+    color: var(--warm-gray);
+  }
+  td {
+    padding: 0.35rem 0.6rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  /* ─── Utilities ─── */
+  .file-ref {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8.5pt;
+    color: var(--accent);
+  }
+  .verdict-box {
+    padding: 1rem 1.2rem;
+    border-left: 3px solid var(--accent);
+    background: var(--cream);
+    margin: 1rem 0;
+    page-break-inside: avoid;
+  }
+  .severity-summary {
+    font-family: 'Inter', sans-serif;
+    font-size: 9pt;
+    display: flex;
+    gap: 1.5rem;
+    margin: 1rem 0;
+  }
+  .severity-summary .count {
+    font-weight: 600;
+    font-size: 18pt;
+    display: block;
+    line-height: 1;
+  }
+  .severity-summary .label {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--warm-gray);
+  }
+  ul { margin: 0.4rem 0 0.7rem 1.2rem; }
+  li { margin-bottom: 0.25rem; }
+  .page-break { page-break-before: always; }
+  .fix-block {
+    background: rgba(0,0,0,0.03);
+    border-left: 2px solid var(--accent);
+    padding: 0.4rem 0.8rem;
+    margin: 0.4rem 0;
+    font-size: 10pt;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════
+     COVER PAGE
+     ════════════════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-rule"></div>
+  <h1>Quantitative Methods Audit</h1>
+  <div class="subtitle">Portfolio Allocation &mdash; Risk Parity &amp; Monte Carlo Simulation</div>
+
+  <div class="cover-meta">
+    <strong>Date:</strong> 10 April 2026<br>
+    <strong>Scope:</strong> Risk parity optimizer, GARCH(1,1)-<em>t</em> volatility models, Cholesky-correlated Monte Carlo simulation, covariance estimation, supporting time-series pipeline<br>
+    <strong>Codebase:</strong> <code>backend/calculator.py</code>, <code>backend/simulator.py</code>, <code>backend/main.py</code>, <code>backend/models.py</code><br>
+    <strong>Lines reviewed:</strong> ~530 (all quantitative logic)
+  </div>
+
+  <div class="cover-verdict">
+    <strong>One-line verdict</strong><br>
+    The core risk parity formulation is correct and the GARCH-<em>t</em> simulation architecture is well-chosen, but the dependence structure used in Monte Carlo path generation systematically understates joint tail risk, and the covariance estimator is inappropriate for the sample sizes and asset counts in play.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     EXECUTIVE VERDICT
+     ════════════════════════════════════════════════════════════════ -->
+<h2>Executive Verdict</h2>
+
+<div class="verdict-box">
+  <h4>Part A &mdash; Technical Track</h4>
+  <p>The implementation makes defensible choices in its point estimates: GARCH(1,1) with Student-<em>t</em> innovations is an appropriate conditional heteroskedasticity model, the risk parity objective (minimise squared deviations of risk contributions from 1/<em>N</em>) is standard, and SLSQP with inverse-vol initialisation is a reasonable solver. However, two structural errors undermine the simulation's distributional outputs. First, the use of a Gaussian copula with <em>t</em>-marginals (independent <em>t</em>-draws correlated via Cholesky) produces asymptotically independent tails, systematically understating the probability of simultaneous extreme losses&mdash;precisely the region VaR and CVaR are meant to measure. Second, the sample covariance matrix is estimated without shrinkage from &sim;50 effective observations for 14 assets, a regime where the Marchenko-Pastur bound guarantees that eigenvalues are noise-dominated, making the risk parity weights functions of estimation error as much as true risk structure.</p>
+</div>
+
+<div class="verdict-box">
+  <h4>Part B &mdash; Plain-Technical Track</h4>
+  <p>The tool gets the big picture right: it uses a well-known volatility model (GARCH) with fat-tailed noise, and the risk parity math is correct. But the way it wires together the simulation has a flaw that matters: when it generates thousands of possible future paths, it underestimates the chance that <em>all</em> your stocks crash at the same time. The model gets everyday wiggles right but is too optimistic about worst-case scenarios. Additionally, when you hold 14 stocks across three different exchanges and only have &sim;50 usable days of data, the correlation estimates are noisy enough that the optimizer is partly chasing statistical ghosts rather than real portfolio structure.</p>
+</div>
+
+<div class="severity-summary">
+  <div><span class="count" style="color: var(--critical-border);">2</span><span class="label">Critical</span></div>
+  <div><span class="count" style="color: var(--material-border);">4</span><span class="label">Material</span></div>
+  <div><span class="count" style="color: var(--minor-border);">4</span><span class="label">Minor</span></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     CRITICAL FINDINGS
+     ════════════════════════════════════════════════════════════════ -->
+<h2 class="page-break">Critical Findings</h2>
+
+<!-- ─── Finding C1 ─── -->
+<div class="finding critical">
+  <div class="finding-header">
+    <span>Finding C1 &mdash; Gaussian copula understates joint tail dependence</span>
+    <span class="tag">Dependence structure</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:161&ndash;168</span></p>
+      <p>The simulation generates innovations by drawing independent Student-<em>t</em> variates per asset and correlating them via a Cholesky factor of the standardised-residual correlation matrix:</p>
+<pre>for i in range(n_assets):
+    raw_t = rng.standard_t(df=nu_i, size=num_simulations)
+    innovations[:, i] = raw_t / np.sqrt(nu_i / (nu_i - 2))
+correlated = innovations @ cholesky_L.T</pre>
+      <p>This constructs a <strong>meta-Gaussian (normal) copula with Student-<em>t</em> marginals</strong>. The resulting joint distribution has the correct pairwise rank correlations and fat-tailed marginals, but its <em>tail dependence coefficient</em> is exactly zero:</p>
+      <div class="math">&lambda;<sub>U</sub> = &lambda;<sub>L</sub> = lim<sub>u&rarr;1</sub> P(X<sub>2</sub> &gt; F<sub>2</sub><sup>&minus;1</sup>(u) | X<sub>1</sub> &gt; F<sub>1</sub><sup>&minus;1</sup>(u)) = 0</div>
+      <p>By contrast, a multivariate Student-<em>t</em> distribution with &nu; degrees of freedom and correlation &rho; has positive lower tail dependence:</p>
+      <div class="math">&lambda;<sub>L</sub> = 2 &middot; t<sub>&nu;+1</sub>( &minus;&radic;((&nu;+1)(1&minus;&rho;)/(1+&rho;)) ) &gt; 0</div>
+      <p>For typical equity parameters (&nu; &asymp; 5, &rho; &asymp; 0.5), this gives &lambda;<sub>L</sub> &asymp; 0.15&ndash;0.25. The Gaussian copula assigns probability ~0 to the event "all assets simultaneously in their 1% tail," while the multivariate-<em>t</em> assigns meaningful probability. Since VaR and CVaR are functions of exactly this tail region, they are systematically underestimated.</p>
+      <p><strong>Literature:</strong> Embrechts, McNeil &amp; Straumann (2002), "Correlation and Dependence in Risk Management: Properties and Pitfalls"; Demarta &amp; McNeil (2005), "The <em>t</em> Copula and Related Copulas."</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:161&ndash;168</span></p>
+      <p>The simulation gives each stock its own fat-tailed random draw (Student-<em>t</em>), then uses a correlation matrix to make them move together. This gets normal-day correlations right, but it misses a crucial property of real markets: <strong>correlations spike during crashes.</strong></p>
+      <p>Think of it this way: if NVDA drops 8% on a normal day, LRCX might drop 3%. The model handles that. But on a genuine crash day&mdash;a liquidity crisis, a macro shock&mdash;NVDA drops 8% and LRCX drops 7%, and AMAT drops 6%, and ASML drops 9%. The probability of <em>everything falling together</em> in the extreme tail is much higher in real life than this model allows.</p>
+      <p>The fix is to use a "multivariate Student-<em>t</em>" distribution, where all the stocks share a common shock factor. When that shared factor is extreme, <em>every</em> stock gets an extreme draw. This is a ~10-line code change (multiply all innovations by a common chi-squared scaling variable) and is the single most impactful improvement available.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Replace independent <em>t</em>-draws + Cholesky with a proper multivariate Student-<em>t</em>: draw Z ~ N(0, &Sigma;) via Cholesky, draw s ~ &chi;&sup2;(&nu;)/&nu;, return Z / &radic;s. Use the minimum fitted &nu; across assets (conservative) or a jointly estimated &nu;. This preserves all existing GARCH variance dynamics while correctly modelling tail dependence.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding C2 ─── -->
+<div class="finding critical">
+  <div class="finding-header">
+    <span>Finding C2 &mdash; Covariance matrix estimated without shrinkage in high-dimension/low-sample regime</span>
+    <span class="tag">Estimation</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">calculator.py:75, 196</span></p>
+      <p>The covariance matrix is estimated via the pandas sample estimator (<code>log_returns.cov()</code>) from <em>T</em> aligned observations of <em>N</em> assets. After the <code>dropna()</code> at line 75 removes all rows where any ticker has a NaN (cross-exchange calendar gaps), the effective <em>T</em> for a 14-asset, 3-exchange portfolio with a 63-day lookback is typically 48&ndash;55.</p>
+      <p>The concentration ratio is <em>N/T</em> &asymp; 14/50 = 0.28. By the Marchenko-Pastur law, in this regime the sample eigenvalue distribution is significantly distorted: the largest eigenvalue is inflated by a factor of approximately (1 + &radic;(<em>N/T</em>))&sup2; &asymp; 2.05, and the smallest eigenvalues are compressed toward zero. The condition number is elevated not because of true portfolio structure but because of estimation noise.</p>
+      <p>The existing ridge regularisation (<span class="file-ref">calculator.py:133&ndash;136</span>) only triggers at condition number &gt; 10<sup>10</sup>, which addresses numerical singularity but does nothing for eigenvalue inflation at condition numbers of 10<sup>2</sup>&ndash;10<sup>4</sup>. The risk parity optimizer then allocates based on these noisy eigenvalues, potentially over-concentrating in assets whose pairwise correlations were <em>underestimated by chance</em> and under-weighting assets whose correlations were <em>overestimated by chance</em>.</p>
+      <p><strong>Literature:</strong> Ledoit &amp; Wolf (2004), "A Well-Conditioned Estimator for Large-Dimensional Covariance Matrices"; Ledoit &amp; Wolf (2012), "Nonlinear Shrinkage Estimation of Large-Dimensional Covariance Matrices."</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">calculator.py:75, 196</span></p>
+      <p>To figure out how your 14 stocks move together, the code computes a 14&times;14 table of correlations and volatilities (the "covariance matrix"). That table has 105 unique entries. It's estimated from roughly 50 days of data&mdash;fewer than the entries it's trying to estimate.</p>
+      <p>When you estimate 105 things from 50 observations, some of the estimates will be too high and some too low, just by chance. The optimizer then treats those noisy estimates as truth and builds weights around them. The result: it might overweight a stock that <em>looked</em> uncorrelated with the rest in a small sample, when in reality it's quite correlated.</p>
+      <p>The standard fix is <strong>shrinkage</strong>&mdash;blending the raw sample estimate with a simpler, more stable estimate (like "all pairwise correlations are the same"). The Ledoit-Wolf estimator does this optimally and is available as a one-liner in scikit-learn. It would meaningfully stabilise the weights without changing the output when you have plenty of data.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Replace <code>log_returns.cov().values * 252</code> with <code>LedoitWolf().fit(log_returns.values).covariance_ * 252</code> from <code>sklearn.covariance</code>. This is a one-line change that is strictly superior to the sample estimator in this regime and asymptotically equivalent when <em>T</em> is large.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MATERIAL FINDINGS
+     ════════════════════════════════════════════════════════════════ -->
+<h2 class="page-break">Material Findings</h2>
+
+<!-- ─── Finding M1 ─── -->
+<div class="finding material">
+  <div class="finding-header">
+    <span>Finding M1 &mdash; Cross-exchange calendar gaps silently reduce effective sample size</span>
+    <span class="tag">Data pipeline</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">calculator.py:71&ndash;75</span></p>
+<pre>log_returns = np.log(prices / prices.shift(1)).dropna(how="all")
+log_returns = log_returns.tail(lookback_days)
+log_returns = log_returns.dropna()  # drops row if ANY ticker has NaN</pre>
+      <p>The <code>dropna()</code> call uses the default <code>how="any"</code>, discarding every row where at least one asset has no trade. For a portfolio spanning NYSE/NASDAQ (US), Euronext Paris (France), and KRX (Korea), the non-overlapping holiday calendars produce 15&ndash;25 mismatched days per year. With a 63-day lookback, this can reduce the effective sample to <em>T</em><sub>eff</sub> &asymp; 45&ndash;52.</p>
+      <p>Critically, the user-configured lookback is treated as the <em>maximum</em> window, but the covariance is estimated from <em>T</em><sub>eff</sub> &lt; lookback_days observations. This is not surfaced to the user, creating a false sense of estimation precision. It also interacts with Finding C2: the concentration ratio worsens from <em>N/T</em> = 14/63 = 0.22 to 14/48 = 0.29.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">calculator.py:71&ndash;75</span></p>
+      <p>When you set a 63-day lookback, you'd expect the tool to use 63 days of data. But since your portfolio includes stocks from the US, France, and Korea&mdash;which have different national holidays&mdash;any day where <em>any one</em> of those markets is closed gets thrown out entirely. You might end up with only 48 usable days, but nowhere does the tool tell you this.</p>
+      <p>This matters because the correlation estimates (Finding C2) are already stretched thin. Silently losing another 15&ndash;20% of your data makes them noisier, and the weights less reliable.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> (1) Return the effective observation count (<code>len(log_returns)</code>) in the API response so the frontend can display "Effective lookback: 48 of 63 days". (2) Consider pairwise covariance estimation instead of listwise deletion&mdash;compute each (i,j) pair using all dates where both <em>i</em> and <em>j</em> traded, then apply nearest-PSD projection. This maximises data use at a modest complexity cost.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding M2 ─── -->
+<div class="finding material">
+  <div class="finding-header">
+    <span>Finding M2 &mdash; No GARCH model adequacy diagnostics or residual checks</span>
+    <span class="tag">Model validation</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:15&ndash;74</span></p>
+      <p>The <code>_fit_single_garch</code> function fits GARCH(1,1)-<em>t</em> and extracts parameters without any residual diagnostics. Specifically:</p>
+      <ul>
+        <li><strong>No Ljung-Box test on standardised residuals.</strong> If the GARCH(1,1) doesn't fully capture the autocorrelation structure of squared returns (e.g., because a higher order or an asymmetric specification like GJR-GARCH is needed), the residuals will exhibit serial dependence, violating the i.i.d. assumption used in the simulation.</li>
+        <li><strong>No Kolmogorov-Smirnov or Anderson-Darling test of the <em>t</em>-distribution fit.</strong> The innovation distribution is assumed Student-<em>t</em> but never verified. If the true distribution has, say, an asymmetric left tail, the simulation will under-generate extreme losses.</li>
+        <li><strong>No sign-bias test.</strong> The symmetric GARCH(1,1) treats positive and negative shocks identically. Equity returns exhibit well-documented leverage effects (Black, 1976): negative shocks increase future volatility more than positive shocks of equal magnitude. A GJR-GARCH or EGARCH would capture this.</li>
+      </ul>
+      <p>The constant-variance fallback (lines 62&ndash;74) is triggered on <em>any</em> exception, including convergence warnings that might indicate a near-boundary solution rather than a failed fit. This conflates estimation failure with model misspecification.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:15&ndash;74</span></p>
+      <p>The GARCH model is fit to each stock and its parameters are extracted, but the code never checks whether the model actually fits well. This is like fitting a line to data and using the slope without ever looking at the residual plot.</p>
+      <p>Three things go unchecked:</p>
+      <ul>
+        <li><strong>Are the leftovers random?</strong> If the GARCH model isn't capturing all the volatility patterns, its "residuals" (leftover noise) will still show patterns. The simulation treats them as pure noise, which would make the generated paths unrealistically smooth or spiky in the wrong places.</li>
+        <li><strong>Is the noise distribution right?</strong> The code assumes the noise follows a Student-<em>t</em> distribution, but never tests this. If the real noise is more skewed (bigger left tail than right), the simulation will undercount extreme losses.</li>
+        <li><strong>Do crashes and rallies affect vol differently?</strong> In real markets, a 5% drop increases future volatility more than a 5% rally. The current GARCH(1,1) treats them symmetrically. A GJR-GARCH variant would capture this "leverage effect."</li>
+      </ul>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> After fitting, run <code>arch</code>'s built-in <code>result.diagnostic_summary()</code> or at minimum Ljung-Box on <code>result.std_resid**2</code> at lags [5, 10, 20]. Flag assets where the test rejects at 5%. Consider upgrading to GJR-GARCH(1,1) as the default specification&mdash;it nests GARCH(1,1) (the asymmetry parameter &gamma; = 0) and is standard in equity vol modelling.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding M3 ─── -->
+<div class="finding material">
+  <div class="finding-header">
+    <span>Finding M3 &mdash; GARCH forecast horizon exceeds model validity range</span>
+    <span class="tag">Forecast validity</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:124&ndash;188, models.py:39</span></p>
+      <p>The GARCH(1,1) is fit from a lookback of typically 63 days (sometimes as few as 21) but used to simulate forward paths of up to 504 days (2 years). The multi-step-ahead conditional variance forecast of a GARCH(1,1) converges to the unconditional variance at rate (&alpha; + &beta;)<sup>h</sup>. For typical equity parameters (&alpha; + &beta; &asymp; 0.97), the half-life is approximately &minus;ln(2)/ln(0.97) &asymp; 23 days.</p>
+      <p>Beyond ~3 half-lives (~70 days), the GARCH conditional variance forecast is essentially the unconditional variance, and the simulation is effectively drawing from an i.i.d. <em>t</em>-distribution. The elaborate day-by-day GARCH recursion adds computational cost and code complexity for the portion of the path beyond ~70 days without adding meaningful conditional information. More importantly, regime changes, structural breaks, and parameter instability over a 2-year horizon make the fitted parameters unreliable&mdash;the simulation presents false precision.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:124&ndash;188</span></p>
+      <p>GARCH models are good at short-term volatility forecasts: "volatility was high yesterday, so it'll probably be somewhat high today." But this memory fades. With typical stock parameters, the model's memory of "current" volatility levels has a half-life of about 23 trading days. By day 70 of a simulation, the model has essentially forgotten where it started and is just generating random noise from the long-run average.</p>
+      <p>When you simulate out to 1&ndash;2 years (252&ndash;504 days), the first month of paths reflects genuine GARCH dynamics, but the remaining 90%+ is effectively a random walk with fat tails. The model doesn't know about regime changes, recessions, or structural shifts over that horizon. The fan chart looks precise out to 2 years, but that precision is an illusion.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> This is partly inherent to the model class and partly a communication issue. (1) Display a note for horizons beyond 126 days that longer horizons increasingly reflect unconditional (average) vol rather than current conditions. (2) For ambitious users, consider a regime-switching extension (Markov-switching GARCH) that can model transitions between low-vol and high-vol regimes, giving more realistic long-horizon distributions.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding M4 ─── -->
+<div class="finding material">
+  <div class="finding-header">
+    <span>Finding M4 &mdash; Portfolio return aggregation uses log-return weighted average</span>
+    <span class="tag">Path generation</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:182&ndash;186</span></p>
+<pre>returns_decimal = returns_pct / 100.0
+portfolio_return = returns_decimal @ weights
+portfolio_values[:, day] = portfolio_values[:, day - 1] * np.exp(portfolio_return)</pre>
+      <p>Here <code>returns_decimal</code> are log returns (the GARCH was fit on percentage log returns). The code computes <em>r</em><sub>p</sub> = &Sigma; <em>w<sub>i</sub></em> &middot; <em>r<sub>i</sub></em> (where <em>r<sub>i</sub></em> = log(<em>P<sub>i,t</sub></em>/<em>P<sub>i,t-1</sub></em>)) and then applies exp(<em>r</em><sub>p</sub>). But the log return of a portfolio is:</p>
+      <div class="math">r<sub>p</sub> = log(&Sigma; w<sub>i</sub> &middot; e<sup>r<sub>i</sub></sup>) &ne; &Sigma; w<sub>i</sub> &middot; r<sub>i</sub></div>
+      <p>By Jensen's inequality (exp is convex), exp(&Sigma; w<sub>i</sub> r<sub>i</sub>) &le; &Sigma; w<sub>i</sub> exp(r<sub>i</sub>), so the code systematically understates the portfolio growth factor. The bias is a second-order term proportional to the cross-sectional variance of returns: approximately &frac12; &Sigma; w<sub>i</sub>(r<sub>i</sub> &minus; r&#772;)<sup>2</sup>. For daily returns this is typically 1&ndash;5 basis points per day, but it compounds over 126+ days.</p>
+      <p>For a daily-rebalanced portfolio (which is the implicit assumption when weights are fixed), the correct update is:</p>
+      <div class="math">V<sub>t</sub> = V<sub>t-1</sub> &middot; &Sigma; w<sub>i</sub> &middot; e<sup>r<sub>i</sub></sup></div>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:182&ndash;186</span></p>
+      <p>The code combines each stock's daily log return into a portfolio return by taking a weighted average, then converts back. This is mathematically slightly wrong&mdash;log returns don't combine across stocks by simple averaging (they only combine that way across <em>time</em>).</p>
+      <p>The error is small on any single day (a few basis points), but it always underestimates the portfolio's value and compounds over the simulation horizon. Over 126 days it might produce terminal values that are 0.5&ndash;2% too low&mdash;not catastrophic, but it introduces a pessimistic bias into every simulation run.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Replace <code>portfolio_values[:, day] = portfolio_values[:, day - 1] * np.exp(portfolio_return)</code> with <code>portfolio_values[:, day] = portfolio_values[:, day - 1] * (np.exp(returns_decimal) @ weights)</code>. This computes the correct weighted average of gross returns.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     MINOR FINDINGS
+     ════════════════════════════════════════════════════════════════ -->
+<h2 class="page-break">Minor Findings</h2>
+
+<!-- ─── Finding N1 ─── -->
+<div class="finding minor">
+  <div class="finding-header">
+    <span>Finding N1 &mdash; Annualised volatility statistic is inconsistent with GARCH dynamics</span>
+    <span class="tag">Reporting</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:233&ndash;235</span></p>
+<pre>daily_equiv_vol = float(np.std(terminal_log_returns)) / np.sqrt(horizon_days)
+annualized_vol = daily_equiv_vol * np.sqrt(252)</pre>
+      <p>The &radic;<em>T</em> scaling assumes returns are i.i.d. Under GARCH, Var(r<sub>1</sub> + ... + r<sub>T</sub>) &ne; T &middot; Var(r<sub>1</sub>) because conditional variances are serially correlated. The reported "annualised vol" conflates two distinct quantities: (1) the cross-simulation dispersion of terminal outcomes, and (2) a time-scaled volatility measure. This number is not directly comparable to Bloomberg or other standard annualised vol figures.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:233&ndash;235</span></p>
+      <p>The annualised vol number is computed using a shortcut (&radic;252 scaling) that assumes each day's return is independent. But the whole point of GARCH is that days <em>aren't</em> independent&mdash;volatile days cluster together. This makes the reported vol a rough summary, not a precise risk measure. It won't match annualised vol figures from standard financial platforms.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Either (a) compute annualised vol from the average of path-level realised variances: &radic;(252/H &middot; mean(&Sigma;<sub>t</sub> r<sub>t</sub>&sup2;)), or (b) label the statistic more precisely as "cross-simulation terminal dispersion" to avoid confusion.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding N2 ─── -->
+<div class="finding minor">
+  <div class="finding-header">
+    <span>Finding N2 &mdash; VaR and CVaR computed at terminal date only</span>
+    <span class="tag">Risk metrics</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:237&ndash;241</span></p>
+      <p>VaR<sub>5%</sub> and CVaR<sub>5%</sub> are computed from the distribution of terminal portfolio values (P<sub>T</sub> &minus; P<sub>0</sub>)/P<sub>0</sub>. These are <em>point-in-time</em> risk measures conditioned on holding to maturity. They do not capture the maximum loss experienced <em>during</em> the holding period. A path that drops 35% at day 40 and recovers to &minus;5% at day 126 registers as a 5% loss in the VaR calculation, despite the holder experiencing a 35% drawdown.</p>
+      <p>The max drawdown statistic (lines 251&ndash;254) partially addresses this, but is reported as a median rather than a tail quantile. A "path-VaR" (5th percentile of the minimum portfolio value across each path) would be more informative for a holder who might need liquidity or face margin calls mid-horizon.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:237&ndash;241</span></p>
+      <p>The VaR and CVaR numbers only look at where the portfolio ends up at the end of the simulation (e.g., day 126). But if your portfolio dropped 35% at day 40 before recovering to &minus;5% at the end, the VaR says "&minus;5%"&mdash;which misses the worst of the ride. The max drawdown stat is closer to what you'd actually experience, but it's reported as a median, not a worst-case measure.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Add a "path VaR" metric: for each simulation, find the lowest portfolio value at any point, then report the 5th percentile of those minimums. This answers "what's the 95%-confidence worst dip I should be prepared for?"
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding N3 ─── -->
+<div class="finding minor">
+  <div class="finding-header">
+    <span>Finding N3 &mdash; Fixed RNG seed eliminates simulation variability</span>
+    <span class="tag">Simulation design</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">simulator.py:138</span></p>
+<pre>rng = np.random.default_rng(seed=42)</pre>
+      <p>The fixed seed makes the simulation a deterministic function of (tickers, weights, lookback, horizon, num_simulations). While this is useful for reproducibility and testing, it means Monte Carlo error is not estimable from repeated runs, and users cannot assess whether 5,000 paths are sufficient. The 5th-percentile VaR from 5,000 paths has a standard error of approximately &radic;(0.05 &middot; 0.95 / 5000) / f(q<sub>0.05</sub>) where f is the terminal density at the quantile&mdash;potentially several percent of the VaR estimate itself.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">simulator.py:138</span></p>
+      <p>Every time you click "Run Simulation" with the same inputs, you get the exact same results. This is because the random number generator uses a hardcoded starting point (seed=42). The simulation isn't really "running 5,000 scenarios"&mdash;it's computing one fixed answer. This is fine for a demo, but means clicking the button twice gives you no new information, and you can't tell whether 5,000 paths is "enough" for stable results.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> Use a random seed by default (<code>rng = np.random.default_rng()</code>) but accept an optional <code>seed</code> parameter for reproducibility. Alternatively, run two independent batches with different seeds and report the VaR difference as a confidence interval.
+    </div>
+  </div>
+</div>
+
+<!-- ─── Finding N4 ─── -->
+<div class="finding minor">
+  <div class="finding-header">
+    <span>Finding N4 &mdash; Correlation structure inconsistency between calculator and simulator</span>
+    <span class="tag">Methodology consistency</span>
+  </div>
+  <div class="finding-body">
+
+    <div class="track">
+      <div class="track-label">Part A &mdash; Technical</div>
+      <p><span class="file-ref">calculator.py:196</span> vs <span class="file-ref">simulator.py:94&ndash;121</span></p>
+      <p>The risk parity optimizer computes weights using the sample covariance of raw log returns. The simulator generates correlated paths using the correlation matrix of GARCH standardised residuals. These are different objects: the raw covariance includes both the conditional mean variance and its time-variation, while the residual correlation strips out the GARCH-modelled heteroskedasticity.</p>
+      <p>In periods of non-stationary volatility (e.g., a vol spike during the lookback), the raw correlation can be inflated by common variance movements (a form of spurious correlation), while the residual correlation isolates the "structural" co-movement. The weights are optimised for one dependence structure but tested under another.</p>
+    </div>
+
+    <div class="track">
+      <div class="track-label">Part B &mdash; Plain-Technical</div>
+      <p><span class="file-ref">calculator.py:196</span> vs <span class="file-ref">simulator.py:94&ndash;121</span></p>
+      <p>The risk parity calculator and the Monte Carlo simulator use different methods to measure how stocks move together. The calculator uses raw return correlations; the simulator uses correlations after stripping out the GARCH volatility patterns. These can give different numbers, especially when volatility has been changing during the lookback period. The weights were optimised for one set of correlations but tested under a different set.</p>
+    </div>
+
+    <div class="fix-block">
+      <strong>Fix:</strong> This is a design choice, not a bug. Both approaches are defensible. If consistency is desired, use the GARCH residual correlation for both, or use the raw covariance for both. Document which is used where.
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     WHAT'S DONE WELL
+     ════════════════════════════════════════════════════════════════ -->
+<h2 class="page-break">What's Done Well</h2>
+
+<div class="finding good">
+  <div class="finding-header">
+    <span>Strengths to preserve</span>
+  </div>
+  <div class="finding-body">
+
+    <h4>1. Risk parity objective formulation</h4>
+    <p><span class="file-ref">calculator.py:120&ndash;169</span> &mdash; The risk parity objective (minimise &Sigma;(RC<sub>i</sub> &minus; 1/<em>N</em>)&sup2; subject to &Sigma;w = 1, w &gt; 0) is the standard Maillard, Roncalli &amp; Te&iuml;letche (2010) formulation. The use of SLSQP with inverse-vol initialisation is a pragmatic choice&mdash;the objective landscape is well-behaved near the inverse-vol solution, and SLSQP handles the simplex constraint efficiently. The fallback to inverse-vol on optimizer failure is sensible since inverse-vol is itself a reasonable risk parity approximation when correlations are moderate.</p>
+
+    <h4>2. GARCH(1,1)-<em>t</em> specification</h4>
+    <p><span class="file-ref">simulator.py:15&ndash;74</span> &mdash; The choice of GARCH(1,1) with Student-<em>t</em> innovations is the workhorse model of equity volatility for good reason: it captures volatility clustering, mean-reversion, and fat tails with only four parameters (&omega;, &alpha;, &beta;, &nu;). The <code>mean="Zero"</code> specification is appropriate for daily returns where the drift is negligible relative to volatility. The stationarity enforcement (&alpha; + &beta; &lt; 1) and variance capping (10&times; starting value) are sensible guardrails against parameter-space pathologies.</p>
+
+    <h4>3. Parallel GARCH fitting</h4>
+    <p><span class="file-ref">simulator.py:77&ndash;91</span> &mdash; Using <code>ThreadPoolExecutor</code> for per-asset GARCH fitting is a well-engineered decision. GARCH fitting is CPU-bound, and with 14 assets the parallelisation provides meaningful speedup. The code correctly handles the <code>arch</code> library's thread safety.</p>
+
+    <h4>4. Eigenvalue clipping for PSD enforcement</h4>
+    <p><span class="file-ref">simulator.py:112&ndash;118</span> &mdash; The residual correlation matrix is projected onto the positive-definite cone via eigenvalue clipping and re-normalisation before Cholesky decomposition. This is the Higham (2002) nearest-correlation-matrix approach and correctly prevents Cholesky failure from finite-sample negative eigenvalues.</p>
+
+    <h4>5. Batch data download with aligned returns</h4>
+    <p><span class="file-ref">calculator.py:12&ndash;103</span> &mdash; Using a single <code>yf.download()</code> call for all tickers ensures calendar alignment. The error handling for missing tickers, insufficient data, and MultiIndex column formats is thorough and user-friendly. The 5-observation minimum is a reasonable floor for return computation.</p>
+
+    <h4>6. Variance explosion guardrails</h4>
+    <p><span class="file-ref">simulator.py:150&ndash;153, 175, 178&ndash;179</span> &mdash; The conditional variance cap at 10&times; starting value and daily return clamp at &plusmn;25% prevent the feedback loop where a large <em>t</em>-draw drives variance to infinity in subsequent steps. These are practical engineering choices that keep the simulation numerically stable without distorting the bulk of the distribution.</p>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     APPENDIX
+     ════════════════════════════════════════════════════════════════ -->
+<h2 class="page-break">Appendix (Technical Track Only)</h2>
+
+<h3>A.1 &mdash; Tail Dependence Derivation</h3>
+<p>For a bivariate Gaussian copula with correlation &rho;, the upper and lower tail dependence coefficients are both zero for |&rho;| &lt; 1:</p>
+<div class="math">&lambda;<sub>L</sub> = &lambda;<sub>U</sub> = 2 &middot; lim<sub>x&rarr;&minus;&infin;</sub> &Phi;(x&radic;((1&minus;&rho;)/(1+&rho;))) / &Phi;(x) = 0</div>
+<p>where &Phi; is the standard normal CDF. This holds regardless of the marginal distributions, because the copula governs the dependence structure. Hence, even with Student-<em>t</em> marginals (which have heavy tails individually), the probability of joint extreme events is asymptotically zero under a Gaussian copula.</p>
+<p>For the multivariate Student-<em>t</em> copula with &nu; degrees of freedom:</p>
+<div class="math">&lambda;<sub>L</sub> = 2 &middot; t<sub>&nu;+1</sub>(&minus;&radic;((&nu;+1)(1&minus;&rho;)/(1+&rho;)))</div>
+<p>where t<sub>&nu;+1</sub> is the CDF of the univariate Student-<em>t</em> with &nu;+1 degrees of freedom. For the equity-typical values &nu; = 5, &rho; = 0.5:</p>
+<div class="math">&lambda;<sub>L</sub> = 2 &middot; t<sub>6</sub>(&minus;&radic;(6 &middot; 0.5/1.5)) = 2 &middot; t<sub>6</sub>(&minus;1.414) &asymp; 2 &times; 0.103 = 0.206</div>
+<p>This means roughly 20% of the time that one asset is in its extreme left tail, the other is too. Under the Gaussian copula used in the current code, this probability converges to 0%.</p>
+
+<h3>A.2 &mdash; Marchenko-Pastur Bound on Eigenvalue Distortion</h3>
+<p>For an <em>N</em> &times; <em>T</em> random matrix with i.i.d. entries and <em>N/T</em> &rarr; <em>y</em> &isin; (0, 1], the sample eigenvalues of the covariance matrix are distributed over the interval:</p>
+<div class="math">[&sigma;&sup2;(1 &minus; &radic;y)&sup2;, &nbsp;&sigma;&sup2;(1 + &radic;y)&sup2;]</div>
+<p>For <em>N</em> = 14, <em>T</em> = 50, <em>y</em> = 0.28:</p>
+<div class="math">&lambda;<sub>max</sub> / &sigma;&sup2; &asymp; (1 + &radic;0.28)&sup2; = (1.529)&sup2; = 2.34</div>
+<p>The largest sample eigenvalue is inflated by ~134% relative to the true value, even when the true covariance is a scalar multiple of the identity. With structured covariance (as in equities), the distortion is somewhat less in the largest eigenvalue (market factor) but can be worse in smaller eigenvalues, leading to unstable eigenvector estimates that directly affect risk parity weights.</p>
+
+<h3>A.3 &mdash; Jensen's Inequality Bias in Log-Return Aggregation</h3>
+<p>Let r<sub>i</sub> denote the log return of asset <em>i</em> and w<sub>i</sub> the portfolio weight. The code computes:</p>
+<div class="math">V&#770;<sub>t</sub> = V<sub>t-1</sub> &middot; exp(&Sigma; w<sub>i</sub> r<sub>i</sub>)</div>
+<p>The correct daily-rebalanced portfolio value is:</p>
+<div class="math">V<sub>t</sub> = V<sub>t-1</sub> &middot; &Sigma; w<sub>i</sub> exp(r<sub>i</sub>)</div>
+<p>The bias per step is:</p>
+<div class="math">E[V<sub>t</sub> &minus; V&#770;<sub>t</sub>] / V<sub>t-1</sub> &asymp; &frac12; &Sigma; w<sub>i</sub>(r<sub>i</sub> &minus; r&#772;)&sup2;</div>
+<p>where r&#772; = &Sigma; w<sub>i</sub> r<sub>i</sub> is the weighted average log return. This is the cross-sectional variance of log returns, which is second-order in daily return magnitudes. For typical daily equity moves (&sigma; &asymp; 1.5%), this is on the order of 0.5&ndash;5 basis points per day, compounding to 0.6&ndash;6.3% over 126 days. The bias always makes V&#770; &lt; V (pessimistic).</p>
+
+<h3>A.4 &mdash; References</h3>
+<table>
+  <tr><td>Bollerslev (1986)</td><td>"Generalized Autoregressive Conditional Heteroskedasticity." <em>Journal of Econometrics</em>, 31(3), 307&ndash;327.</td></tr>
+  <tr><td>Demarta &amp; McNeil (2005)</td><td>"The <em>t</em> Copula and Related Copulas." <em>International Statistical Review</em>, 73(1), 111&ndash;129.</td></tr>
+  <tr><td>Embrechts, McNeil &amp; Straumann (2002)</td><td>"Correlation and Dependence in Risk Management." In <em>Risk Management: Value at Risk and Beyond</em>, Cambridge UP.</td></tr>
+  <tr><td>Glosten, Jagannathan &amp; Runkle (1993)</td><td>"On the Relation between the Expected Value and the Volatility of the Nominal Excess Return on Stocks." <em>Journal of Finance</em>, 48(5), 1779&ndash;1801.</td></tr>
+  <tr><td>Higham (2002)</td><td>"Computing the Nearest Correlation Matrix." <em>IMA Journal of Numerical Analysis</em>, 22(3), 329&ndash;343.</td></tr>
+  <tr><td>Ledoit &amp; Wolf (2004)</td><td>"A Well-Conditioned Estimator for Large-Dimensional Covariance Matrices." <em>Journal of Multivariate Analysis</em>, 88(2), 365&ndash;411.</td></tr>
+  <tr><td>Maillard, Roncalli &amp; Te&iuml;letche (2010)</td><td>"The Properties of Equally Weighted Risk Contribution Portfolios." <em>Journal of Portfolio Management</em>, 36(4), 60&ndash;70.</td></tr>
+  <tr><td>Marchenko &amp; Pastur (1967)</td><td>"Distribution of Eigenvalues for Some Sets of Random Matrices." <em>Mathematics of the USSR-Sbornik</em>, 1(4), 457.</td></tr>
+</table>
+
+</body>
+</html>

@@ -15,8 +15,8 @@ export interface ParseResult {
 
 const TICKER_PATTERNS = ['symbol', 'ticker', 'stock symbol', 'instrument'];
 const VALUE_PATTERNS = ['market value', 'current value', 'mkt value', 'position value'];
-const QTY_PATTERNS = ['quantity', 'qty', 'shares'];
-const PRICE_PATTERNS = ['last price', 'current price', 'close price', 't.price', 'price'];
+const QTY_PATTERNS = ['quantity', 'qty', 'shares', 'position'];
+const PRICE_PATTERNS = ['last price', 'current price', 'close price', 't.price', 'price', 'last'];
 
 const SKIP_TICKERS = /^(cash|total|subtotal|summary|account|net |--)/i;
 
@@ -37,7 +37,17 @@ function parseNumber(raw: string): number {
   return negative ? -n : n;
 }
 
-function splitCSVLine(line: string): string[] {
+function detectDelimiter(lines: string[]): string {
+  // Check first few lines for tabs — if any line has tabs, it's tab-delimited
+  for (const line of lines.slice(0, 5)) {
+    if (line.includes('\t')) return '\t';
+  }
+  return ',';
+}
+
+function splitCSVLine(line: string, delim: string): string[] {
+  if (delim === '\t') return line.split('\t');
+
   const fields: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -86,7 +96,8 @@ export function parseCSV(text: string): ParseResult {
     return { holdings: [], skipped: [], method: '', errors: ['The file appears to be empty.'] };
   }
 
-  const lines = rawLines.map(l => splitCSVLine(l));
+  const delim = detectDelimiter(rawLines);
+  const lines = rawLines.map(l => splitCSVLine(l, delim));
   const headerIdx = findHeaderRow(lines);
 
   if (headerIdx === -1) {
@@ -184,8 +195,11 @@ export function parseCSV(text: string): ParseResult {
       source = 'computed';
     }
 
-    // Skip invalid or non-positive amounts
-    if (isNaN(amount) || amount <= 0) {
+    // Use absolute value (short positions are still real dollar exposure)
+    amount = Math.abs(amount);
+
+    // Skip invalid or zero amounts
+    if (isNaN(amount) || amount === 0) {
       skipped.push(ticker);
       continue;
     }

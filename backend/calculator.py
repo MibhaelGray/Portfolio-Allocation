@@ -37,7 +37,7 @@ def _fetch_returns_and_metadata(
         return pd.DataFrame(), {}, [{"ticker": t, "reason": f"Download failed: {e}"} for t in tickers]
 
     if raw is None or raw.empty:
-        return pd.DataFrame(), {}, [{"ticker": t, "reason": "No data returned"} for t in tickers]
+        return pd.DataFrame(), {}, [{"ticker": t, "reason": f"Ticker '{t}' not found — check the symbol or add an exchange suffix (e.g. .HK, .T)"} for t in tickers]
 
     # Extract closing prices — handle both single-ticker and multi-ticker cases
     if len(tickers) == 1:
@@ -55,9 +55,10 @@ def _fetch_returns_and_metadata(
     good_tickers = []
     for t in tickers:
         if t not in prices.columns:
-            failed.append({"ticker": t, "reason": "No data returned from yfinance"})
+            failed.append({"ticker": t, "reason": f"Ticker '{t}' not found — check the symbol or add an exchange suffix (e.g. .HK, .T)"})
         elif prices[t].dropna().shape[0] < 5:
-            failed.append({"ticker": t, "reason": f"Insufficient price data ({prices[t].dropna().shape[0]} rows)"})
+            rows = prices[t].dropna().shape[0]
+            failed.append({"ticker": t, "reason": f"Only {rows} day{'s' if rows != 1 else ''} of price data available — need at least 5"})
         else:
             good_tickers.append(t)
 
