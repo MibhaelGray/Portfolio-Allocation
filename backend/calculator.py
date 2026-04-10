@@ -5,6 +5,7 @@ import yfinance as yf
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+from sklearn.covariance import LedoitWolf
 from datetime import datetime, timedelta
 from typing import Tuple, List, Dict
 
@@ -192,8 +193,8 @@ def calculate_portfolio(
 
     good_tickers = list(log_returns.columns)
 
-    # Annualized covariance matrix (multiply by 252 trading days)
-    cov_matrix = log_returns.cov().values * 252
+    # Annualized covariance matrix (Ledoit-Wolf shrinkage, multiply by 252 trading days)
+    cov_matrix = LedoitWolf().fit(log_returns.values).covariance_ * 252
 
     # Per-ticker annualized realized vol (from diagonal of covariance)
     vols = np.sqrt(np.diag(cov_matrix))
