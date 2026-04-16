@@ -77,8 +77,11 @@ export default function MethodologyPage() {
       <p>
         This is a <em>backward-looking</em> measure&mdash;it tells you how much the stock actually
         moved, not how much the market expects it to move (that would be <em>implied</em> volatility,
-        derived from options prices). Realized vol is model-free: no assumptions about the
-        distribution of returns, no parameters to fit.
+        derived from options prices). Raw realized vol is model-free: no assumptions about the
+        distribution of returns, no parameters to fit. In practice, the per-ticker &sigma;<sub>i</sub>
+        shown in the results table is the square root of the diagonal of the shrunk covariance matrix
+        from the next section&mdash;essentially raw realized vol, but pulled slightly toward the
+        portfolio-average variance by Ledoit&ndash;Wolf shrinkage.
       </p>
 
       <h3>The &radic;252 scaling factor</h3>
@@ -249,8 +252,9 @@ export default function MethodologyPage() {
         <li>
           <strong>Covariance estimation noise.</strong> With a 63-day lookback and 14 assets,
           you&rsquo;re estimating 105 pairwise covariances from relatively few observations.
-          The optimizer uses ridge regularization to prevent instability from noisy estimates,
-          but the weights are still approximations&mdash;not exact risk targets.
+          Ledoit&ndash;Wolf shrinkage (Section 3) is the primary defense against this noise; a
+          ridge fallback inside the optimizer handles the edge case where the shrunk matrix is
+          still near-singular. The weights are still approximations&mdash;not exact risk targets.
         </li>
         <li>
           <strong>Small positions may be impractical.</strong> With a $5,000 allocation and 14
