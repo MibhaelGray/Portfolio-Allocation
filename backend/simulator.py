@@ -6,10 +6,32 @@ import numpy as np
 import pandas as pd
 from scipy.stats import t as t_dist
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _constant_variance_fallback(
+    ticker: str,
+    returns_pct: np.ndarray,
+    reason: str,
+) -> Dict:
+    """Honest constant-variance bundle. Used when GARCH fit fails or hits
+    near-IGARCH territory where unconditional variance is undefined."""
+    logger.warning(f"GARCH fallback for {ticker}: {reason}")
+    sample_var = float(np.var(returns_pct, ddof=1))
+    sample_std = float(np.std(returns_pct, ddof=1))
+    return {
+        "ticker": ticker,
+        "omega": max(sample_var, 1e-8),
+        "alpha": 0.0,
+        "beta": 0.0,
+        "nu": 30.0,
+        "last_cond_var": max(sample_var, 1e-8),
+        "std_resids": (returns_pct - returns_pct.mean()) / max(sample_std, 1e-8),
+        "fallback_used": True,
+    }
 
 
 def _fit_single_garch(ticker: str, returns_pct: np.ndarray) -> Dict:
@@ -33,15 +55,22 @@ def _fit_single_garch(ticker: str, returns_pct: np.ndarray) -> Dict:
         beta = float(result.params.get("beta[1]", 0))
         nu = float(result.params.get("nu", 30))
 
-        # Ensure positivity and stationarity
+        # Ensure positivity
         omega = max(omega, 1e-8)
         alpha = max(alpha, 0)
         beta = max(beta, 0)
         persistence = alpha + beta
-        if persistence >= 1.0:
-            alpha = alpha / (persistence + 0.01)
-            beta = beta / (persistence + 0.01)
-            persistence = alpha + beta
+
+        # Stationarity check: if the fit lands in (near-)IGARCH territory the
+        # unconditional variance omega/(1-persistence) is undefined. Rescaling
+        # alpha/beta post hoc (prior behavior) produces parameters inconsistent
+        # with the MLE and breaks downstream reporting (half-life, uncond vol).
+        # Route to the constant-variance fallback instead — honest and consistent.
+        if persistence >= 0.999:
+            return _constant_variance_fallback(
+                ticker, returns_pct,
+                f"near-IGARCH fit (alpha+beta={persistence:.4f} ≥ 0.999)",
+            )
 
         cond_vol = result.conditional_volatility
         last_cond_var = float(cond_vol.iloc[-1] ** 2) if hasattr(cond_vol, 'iloc') else float(cond_vol[-1] ** 2)
@@ -60,18 +89,7 @@ def _fit_single_garch(ticker: str, returns_pct: np.ndarray) -> Dict:
         }
 
     except Exception as e:
-        logger.warning(f"GARCH fitting failed for {ticker}: {e}. Using constant-variance fallback.")
-        sample_var = float(np.var(returns_pct, ddof=1))
-        return {
-            "ticker": ticker,
-            "omega": max(sample_var, 1e-8),
-            "alpha": 0.0,
-            "beta": 0.0,
-            "nu": 30.0,
-            "last_cond_var": max(sample_var, 1e-8),
-            "std_resids": (returns_pct - returns_pct.mean()) / max(returns_pct.std(), 1e-8),
-            "fallback_used": True,
-        }
+        return _constant_variance_fallback(ticker, returns_pct, f"fit exception: {e}")
 
 
 def fit_garch_models(log_returns: pd.DataFrame) -> Dict[str, Dict]:
@@ -129,13 +147,23 @@ def simulate_paths(
     horizon_days: int,
     num_simulations: int,
     total_allocation: float,
-) -> np.ndarray:
+    seed: Optional[int] = None,
+) -> Tuple[np.ndarray, int, int]:
     """
     Run vectorized Monte Carlo simulation with GARCH-t dynamics.
-    Returns portfolio_values array of shape (num_simulations, horizon_days + 1).
+    Returns (portfolio_values, cap_trigger_count, seed_used).
+      portfolio_values: (num_simulations, horizon_days + 1)
+      cap_trigger_count: number of (sim, asset, day) cells where h hit the
+        numerical safeguard cap. Should be ~0 for well-behaved fits; large
+        values signal genuine runaway that was silently truncated.
+      seed_used: the seed actually used — freshly drawn if input seed was None.
     """
     n_assets = len(tickers)
-    rng = np.random.default_rng(seed=42)
+    if seed is None:
+        # Draw a fresh reproducible seed from a seedless bootstrap RNG, then
+        # echo it back so the user can replay the exact same paths if desired.
+        seed = int(np.random.default_rng().integers(0, 2**31 - 1))
+    rng = np.random.default_rng(seed=seed)
 
     # Extract GARCH parameters as arrays for vectorization
     omegas = np.array([garch_results[t]["omega"] for t in tickers])
@@ -144,48 +172,83 @@ def simulate_paths(
     nus = np.array([garch_results[t]["nu"] for t in tickers])
     last_h = np.array([garch_results[t]["last_cond_var"] for t in tickers])
 
+    # Pooled ν̄ for the t-copula. The dependence structure lives in a
+    # multivariate-t with df = ν̄; marginals get remapped to their own ν_i
+    # via the probability-integral transform. Median is robust to a single
+    # outlier-fitted asset. Floored at 2.5 so Var(t) is finite.
+    nu_bar = max(float(np.median(nus)), 2.5)
+    # Pre-compute per-asset standardization scale for the target marginals.
+    scale_i = np.sqrt(nus / (nus - 2.0))
+
     # Initialize: (num_simulations, n_assets)
     h = np.tile(last_h, (num_simulations, 1))
 
-    # Cap conditional variance at 10x the starting value per asset.
-    # Prevents runaway feedback loops where extreme t-draws → huge h → even
-    # more extreme returns → h explodes to infinity over the horizon.
-    h_cap = last_h * 10.0
+    # Soft numerical safeguard on conditional variance. Takes the larger of
+    # 100× starting variance and (20× long-run daily stddev)². Only trips on
+    # true numerical runaway, not on plausible crisis vol — the prior 10×
+    # last_h cap clipped every crisis scenario, biasing VaR/CVaR toward safety.
+    persistences = alphas + betas
+    safe_denom = np.maximum(1.0 - persistences, 0.01)
+    long_run_var = omegas / safe_denom
+    h_cap = np.maximum(100.0 * last_h, 400.0 * long_run_var)
+
+    cap_trigger_count = 0
 
     # Portfolio value paths: (num_simulations, horizon_days + 1)
     portfolio_values = np.empty((num_simulations, horizon_days + 1))
     portfolio_values[:, 0] = total_allocation
 
-    for day in range(1, horizon_days + 1):
-        # Generate correlated Student-t innovations
-        innovations = np.empty((num_simulations, n_assets))
-        for i in range(n_assets):
-            nu_i = nus[i]
-            raw_t = rng.standard_t(df=nu_i, size=num_simulations)
-            innovations[:, i] = raw_t / np.sqrt(nu_i / (nu_i - 2))
+    # Apple Accelerate BLAS raises spurious divide/overflow/invalid flags from
+    # matmul even on clean inputs with clean outputs (known numpy+macOS issue).
+    # Suppress locally around the hot loop so logs stay readable; output
+    # sanity is still validated via h_cap trigger tracking.
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        for day in range(1, horizon_days + 1):
+            # ── t-copula sampling (McNeil-Frey-Embrechts §5.5) ──────────────
+            # 1. Correlated standard normals: Z ~ N(0, C) where C = L L^T.
+            Z = rng.standard_normal((num_simulations, n_assets)) @ cholesky_L.T
+            # 2. Per-path chi-squared scaling: one W shared across assets so
+            #    T = Z/√W is multivariate-t with df = ν̄ and correlation C.
+            #    Shared W creates joint tail dependence — independent per-asset
+            #    W's would reduce to a Gaussian copula in the limit. Floor W
+            #    at 1e-6 as numerical safeguard: P(χ²/ν < 1e-6) is
+            #    astronomically small and untruncated draws produce
+            #    finite-but-preposterous T that overflow exp() in compounding.
+            W = rng.chisquare(df=nu_bar, size=num_simulations) / nu_bar
+            W = np.maximum(W, 1e-6)
+            T = Z / np.sqrt(W)[:, None]
+            # 3. PIT to uniform via the t_{ν̄} CDF. Clip away from {0,1} so
+            #    the inverse CDF in step 4 doesn't produce ±inf in the tail.
+            U = np.clip(t_dist.cdf(T, df=nu_bar), 1e-12, 1.0 - 1e-12)
+            # 4. Map each uniform column to its asset's target marginal
+            #    t_{ν_i} and rescale to unit variance so GARCH stays on spec.
+            innovations = np.empty((num_simulations, n_assets))
+            for i in range(n_assets):
+                innovations[:, i] = t_dist.ppf(U[:, i], df=nus[i]) / scale_i[i]
+            # ────────────────────────────────────────────────────────────────
 
-        # Correlate innovations via Cholesky: (num_sim, n_assets) @ L^T
-        correlated = innovations @ cholesky_L.T
+            # Daily log returns in percentage space: r = sqrt(h) * epsilon
+            sigma = np.sqrt(np.maximum(h, 1e-12))
+            returns_pct = sigma * innovations
 
-        # Daily returns in percentage space: r = sqrt(h) * epsilon
-        sigma = np.sqrt(np.maximum(h, 1e-12))
-        returns_pct = sigma * correlated
+            # Update conditional variance. The ±25% per-day return clip was
+            # removed: Student-t with ν > 2 has finite variance, and the clip
+            # systematically truncated crisis-day magnitudes that a risk tool
+            # should be reporting.
+            h_new = omegas + alphas * (returns_pct ** 2) + betas * h
+            hit_cap = h_new > h_cap
+            cap_trigger_count += int(hit_cap.sum())
+            h = np.minimum(h_new, h_cap)
 
-        # Clamp daily returns to +/- 25% per asset (prevents unrealistic compounding)
-        returns_pct = np.clip(returns_pct, -25.0, 25.0)
+            # Compound weighted-average simple return. Weighted sum of log
+            # returns is NOT the log return of the portfolio (log is not
+            # linear); Σ wᵢ·exp(rᵢ) is correct.
+            returns_decimal = returns_pct / 100.0
+            asset_gross = np.exp(returns_decimal)
+            portfolio_gross = asset_gross @ weights
+            portfolio_values[:, day] = portfolio_values[:, day - 1] * portfolio_gross
 
-        # Update conditional variance for next step, capped to prevent explosion
-        h = omegas + alphas * (returns_pct ** 2) + betas * h
-        h = np.minimum(h, h_cap)
-
-        # Convert to decimal returns and compute portfolio return
-        returns_decimal = returns_pct / 100.0
-        portfolio_return = returns_decimal @ weights
-
-        # Compound portfolio value (log-return compounding)
-        portfolio_values[:, day] = portfolio_values[:, day - 1] * np.exp(portfolio_return)
-
-    return portfolio_values
+    return portfolio_values, cap_trigger_count, seed
 
 
 def compute_simulation_statistics(

@@ -152,6 +152,18 @@ export default function MethodologyPage() {
         distorted by stale prices.
       </p>
 
+      <p>
+        Rather than the raw sample covariance, we apply <strong>Ledoit&ndash;Wolf shrinkage</strong>
+        (Ledoit &amp; Wolf, 2004), which pulls the estimator toward a well-conditioned target
+        (diagonal average variance) by an analytically optimal factor. Sample covariances are
+        notoriously unstable when the number of assets approaches the number of observations&mdash;a
+        63-day window with 14 tickers is exactly that regime. Shrinkage reduces estimation error
+        at the cost of a tiny bias, yielding weights that generalize better out of sample. We also
+        pass <code>assume_centered=True</code> because daily return means are economically near zero
+        and the sample mean is dominated by noise over short windows; forcing the estimator to
+        compute its own mean wastes one degree of freedom of signal.
+      </p>
+
       {/* ── Section 4 ──────────────────────────── */}
       <h2>4. Risk Parity Weighting</h2>
 
@@ -319,16 +331,69 @@ export default function MethodologyPage() {
         After fitting, each asset&rsquo;s standardized residuals should be roughly i.i.d. with no
         remaining volatility clustering. But they still retain their cross-asset correlations&mdash;if
         two semiconductor stocks tend to drop together, their residuals will be positively correlated.
-        We estimate the correlation matrix of these residuals, then use <em>Cholesky decomposition</em> to
-        generate correlated innovations during simulation.
+        We estimate the correlation matrix of these residuals (the <em>constant conditional
+        correlation</em> approximation of Bollerslev, 1990), repair it for positive-definiteness via
+        eigenvalue clipping, and use it as the basis of a <strong>Student&ndash;t copula</strong>.
       </p>
 
-      <div className="formula">
-        <div>C = L &middot; L<sup>T</sup> &nbsp;(Cholesky factorization of residual correlation matrix)</div>
-        <div style={{ marginTop: '0.5rem' }}>
-          &epsilon;<sub>correlated</sub> = L &middot; &epsilon;<sub>independent</sub>
-        </div>
-      </div>
+      <h3>Why a t-copula instead of Cholesky-of-t&rsquo;s</h3>
+
+      <p>
+        A common shortcut in Monte Carlo code is to draw independent Student&ndash;t variates and
+        multiply by a Cholesky factor. This is <em>not</em> mathematically valid: the Student&ndash;t
+        distribution is not closed under linear combinations (unlike the Gaussian), so the result has
+        neither proper t marginals nor proper t-copula tail dependence. It preserves the pairwise
+        covariance approximately but gets the joint tail behavior wrong&mdash;precisely the behavior
+        a risk tool should care about most.
+      </p>
+
+      <p>
+        Instead, we construct the joint distribution via a genuine t-copula
+        (McNeil&ndash;Frey&ndash;Embrechts, §5.5), which decouples the dependence structure from
+        the marginal tail thickness:
+      </p>
+
+      <ol>
+        <li>
+          <strong>Pool the degrees of freedom.</strong> Let &nu;&#x0304; be the median of the fitted
+          &nu;<sub>i</sub> across assets (floored at 2.5). This is the df of the copula.
+        </li>
+        <li>
+          <strong>Draw correlated normals.</strong> Sample Z&nbsp;=&nbsp;L&nbsp;&middot;&nbsp;&epsilon;
+          where &epsilon; is standard normal, so Z has the target correlation matrix C&nbsp;=&nbsp;LL<sup>T</sup>.
+        </li>
+        <li>
+          <strong>Apply a shared chi-squared scaler.</strong> Draw
+          W&nbsp;&sim;&nbsp;&chi;<sup>2</sup><sub>&nu;&#x0304;</sub>&nbsp;/&nbsp;&nu;&#x0304; (one per
+          path, shared across assets) and form
+          T&nbsp;=&nbsp;Z&nbsp;/&nbsp;&radic;W.
+          The vector T is multivariate Student&ndash;t with df&nbsp;=&nbsp;&nu;&#x0304; and
+          correlation C. Critically, the <em>shared</em> W is what generates joint tail
+          dependence&mdash;independent per-asset scalers would collapse to a Gaussian copula in the
+          tails.
+        </li>
+        <li>
+          <strong>Probability-integral transform.</strong> Map
+          U<sub>i</sub>&nbsp;=&nbsp;F<sub>t,&nu;&#x0304;</sub>(T<sub>i</sub>) so each column is
+          uniform on (0,1) but jointly carries t-copula structure.
+        </li>
+        <li>
+          <strong>Remap to target marginals.</strong> For each asset <em>i</em>, map
+          U<sub>i</sub> through the inverse CDF of its own fitted t distribution:
+          &epsilon;<sub>i</sub>&nbsp;=&nbsp;F<sup>&minus;1</sup><sub>t,&nu;<sub>i</sub></sub>(U<sub>i</sub>),
+          then divide by &radic;(&nu;<sub>i</sub>&nbsp;/&nbsp;(&nu;<sub>i</sub>&minus;2)) so the
+          innovation has unit variance (required for the GARCH recursion).
+        </li>
+      </ol>
+
+      <p>
+        This produces innovations that simultaneously have each asset&rsquo;s fitted tail thickness
+        <em>and</em> a correctly calibrated joint tail&mdash;when one asset experiences a crisis-magnitude
+        draw, correlated assets are substantially more likely to co-move with it than under a
+        Gaussian-copula simulation.
+      </p>
+
+      <h3>The daily loop</h3>
 
       <p>
         For each simulation path, we step forward one trading day at a time:
@@ -336,30 +401,39 @@ export default function MethodologyPage() {
 
       <ol>
         <li>
-          Draw independent Student-t variates for each asset (using that asset&rsquo;s fitted &nu;).
+          Sample a joint innovation vector &epsilon;<sub>t</sub> via the t-copula procedure above.
         </li>
         <li>
-          Multiply by the Cholesky factor L to introduce cross-asset correlation.
-        </li>
-        <li>
-          Scale by each asset&rsquo;s current conditional standard deviation &sigma;<sub>t</sub> to
-          get daily returns.
+          Scale by each asset&rsquo;s current conditional standard deviation &sigma;<sub>i,t</sub> to
+          get daily log returns.
         </li>
         <li>
           Update each asset&rsquo;s conditional variance via the GARCH equation for the next step.
         </li>
         <li>
-          Compute the portfolio return as the weighted sum of asset returns, and compound the
-          portfolio value.
+          Compute the portfolio return by compounding each asset&rsquo;s gross return
+          (exp&nbsp;of its log return), weight-averaging, and multiplying into the running
+          portfolio value:
+          V<sub>t+1</sub>&nbsp;=&nbsp;V<sub>t</sub>&nbsp;&middot;&nbsp;&Sigma;<sub>i</sub>&nbsp;w<sub>i</sub>&nbsp;exp(r<sub>i,t</sub>).
         </li>
       </ol>
 
       <p>
-        This process respects three key features simultaneously: per-asset volatility dynamics
-        (GARCH), fat tails (Student-t), and cross-asset dependence (Cholesky correlation). The
+        This process respects four key features simultaneously: per-asset volatility dynamics
+        (GARCH), heterogeneous fat tails (Student-t marginals with per-asset &nu;<sub>i</sub>),
+        joint tail dependence (t-copula), and correct compounding of weighted returns. The
         simulation assumes zero expected return (drift&nbsp;=&nbsp;0), because sample mean estimates
         from a 63-day window are far too noisy to be useful&mdash;this is a risk profiling tool,
         not a return forecasting tool.
+      </p>
+
+      <p>
+        We do <strong>not</strong> clip daily returns or cap the conditional variance to
+        &ldquo;reasonable&rdquo; bounds&mdash;doing so would silently truncate exactly the crisis
+        scenarios a risk tool should be reporting. A loose numerical safeguard on variance
+        (100&times; the starting level, or 400&times; long-run variance, whichever is larger) is
+        present purely to prevent floating-point overflow; if it triggers during a run, the count
+        is surfaced in the response so you can see when simulated paths genuinely ran away.
       </p>
 
       {/* ── Section 9 ──────────────────────────── */}
@@ -400,10 +474,13 @@ export default function MethodologyPage() {
 
       <ol>
         <li>
-          <strong>Static correlations.</strong> The simulation uses a single correlation matrix estimated
-          from the lookback window. In a real crisis, correlations tend to spike toward 1.0
-          (&ldquo;all correlations go to one&rdquo;), meaning the simulation may understate
-          tail risk from correlation breakdown.
+          <strong>Static correlations (CCC assumption).</strong> The simulation uses a single correlation
+          matrix of standardized residuals over the lookback window&mdash;Bollerslev&rsquo;s constant
+          conditional correlation setup. In a real crisis, correlations tend to spike toward 1.0
+          (&ldquo;all correlations go to one&rdquo;), meaning the simulation may still understate
+          tail risk from correlation breakdown even with the t-copula&rsquo;s joint tail dependence.
+          A full DCC (dynamic conditional correlation) model or rank-based dependence estimation
+          would be the next refinement.
         </li>
         <li>
           <strong>GARCH mean-reversion.</strong> With typical persistence of 0.95, conditional variance

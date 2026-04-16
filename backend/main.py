@@ -43,13 +43,14 @@ async def calculate(req: CalculateRequest):
             seen.add(key)
             deduped.append(t.strip())
 
-    results_raw, failed_raw = calculate_portfolio(
+    results_raw, failed_raw, effective_lookback = calculate_portfolio(
         deduped, req.lookback_days, req.total_allocation
     )
 
     return CalculateResponse(
         results=[TickerResult(**r) for r in results_raw],
         failed=[FailedTicker(**f) for f in failed_raw],
+        effective_lookback_days=effective_lookback,
     )
 
 
@@ -83,7 +84,7 @@ async def simulate(req: SimulateRequest):
     weights = weights / weights.sum()
 
     # Fetch log returns using same function as /api/calculate
-    calendar_days = int(req.lookback_days * (365 / 252)) + 60
+    calendar_days = int(req.lookback_days * (365 / 252)) + 90
     end_date = datetime.today().strftime("%Y-%m-%d")
     start_date = (datetime.today() - timedelta(days=calendar_days)).strftime("%Y-%m-%d")
 
@@ -95,6 +96,7 @@ async def simulate(req: SimulateRequest):
         raise HTTPException(status_code=422, detail="No valid ticker data available for simulation")
 
     good_tickers = list(log_returns.columns)
+    effective_lookback = int(log_returns.shape[0])
     failed = [FailedTicker(**f) for f in failed_raw]
 
     # Re-align weights to only good tickers
@@ -112,9 +114,10 @@ async def simulate(req: SimulateRequest):
     corr, cholesky_L = compute_residual_correlation(garch_results, good_tickers)
 
     # Run simulation
-    portfolio_values = simulate_paths(
+    portfolio_values, cap_trigger_count, seed_used = simulate_paths(
         garch_results, good_tickers, good_weights, cholesky_L,
         req.horizon_days, req.num_simulations, req.total_allocation,
+        seed=req.seed,
     )
 
     # Compute statistics
@@ -130,5 +133,8 @@ async def simulate(req: SimulateRequest):
         garch_params=[GarchParams(**g) for g in garch_params],
         horizon_days=req.horizon_days,
         num_simulations=req.num_simulations,
+        effective_lookback_days=effective_lookback,
+        seed=seed_used,
+        cap_trigger_count=cap_trigger_count,
         failed=failed,
     )

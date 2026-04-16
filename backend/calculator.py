@@ -68,14 +68,14 @@ def _fetch_returns_and_metadata(
 
     prices = prices[good_tickers]
 
-    # Compute log returns and trim to lookback window
-    log_returns = np.log(prices / prices.shift(1)).dropna(how="all")
-    log_returns = log_returns.tail(lookback_days)
+    # Compute log returns. Align across good_tickers FIRST (drop any-NaN rows for
+    # cross-exchange calendar gaps), THEN take tail(lookback_days). This guarantees
+    # the user gets lookback_days of aligned observations whenever enough history exists —
+    # rather than silently shrinking the window when one ticker has gappy data.
+    log_returns_raw = np.log(prices / prices.shift(1)).dropna(how="all")
+    log_returns = log_returns_raw[good_tickers].dropna().tail(lookback_days)
 
-    # Drop rows with any NaN (handles cross-exchange calendar gaps)
-    log_returns = log_returns.dropna()
-
-    # Check we still have enough data after NaN removal
+    # Check each ticker still has enough aligned rows
     tickers_to_remove = []
     for t in good_tickers:
         if log_returns[t].shape[0] < 5:
@@ -86,7 +86,9 @@ def _fetch_returns_and_metadata(
         good_tickers = [t for t in good_tickers if t not in tickers_to_remove]
         if not good_tickers:
             return pd.DataFrame(), {}, failed
-        log_returns = log_returns[good_tickers]
+        # Re-align with the remaining tickers — may widen the window if the removed
+        # ticker was forcing NaN drops.
+        log_returns = log_returns_raw[good_tickers].dropna().tail(lookback_days)
 
     # Fetch metadata (name, currency, last price) for each good ticker
     metadata = {}
@@ -174,13 +176,18 @@ def calculate_portfolio(
     tickers: List[str],
     lookback_days: int,
     total_allocation: float,
-) -> Tuple[List[Dict], List[Dict]]:
+) -> Tuple[List[Dict], List[Dict], int]:
     """
-    Returns (results, failed).
+    Returns (results, failed, effective_lookback_days).
     Uses risk parity (equal risk contribution) weighting via the full
     covariance matrix, accounting for both volatility and correlations.
+
+    effective_lookback_days is the actual number of aligned return observations
+    used — may be less than requested lookback_days if total available history
+    is shorter.
     """
-    calendar_days = int(lookback_days * (365 / 252)) + 60
+    # Buffer +90 calendar days to absorb weekends, holidays, and cross-exchange alignment loss.
+    calendar_days = int(lookback_days * (365 / 252)) + 90
     end_date = datetime.today().strftime("%Y-%m-%d")
     start_date = (datetime.today() - timedelta(days=calendar_days)).strftime("%Y-%m-%d")
 
@@ -189,12 +196,15 @@ def calculate_portfolio(
     )
 
     if log_returns.empty or not metadata:
-        return [], failed
+        return [], failed, 0
 
     good_tickers = list(log_returns.columns)
+    effective_lookback = int(log_returns.shape[0])
 
-    # Annualized covariance matrix (Ledoit-Wolf shrinkage, multiply by 252 trading days)
-    cov_matrix = LedoitWolf().fit(log_returns.values).covariance_ * 252
+    # Annualized covariance matrix (Ledoit-Wolf shrinkage, multiply by 252 trading days).
+    # assume_centered=True: daily means are economically ~0 and the sample mean is
+    # dominated by noise over short lookbacks; estimating it burns one DOF of signal.
+    cov_matrix = LedoitWolf(assume_centered=True).fit(log_returns.values).covariance_ * 252
 
     # Per-ticker annualized realized vol (from diagonal of covariance)
     vols = np.sqrt(np.diag(cov_matrix))
@@ -219,4 +229,4 @@ def calculate_portfolio(
             "risk_contribution": round(float(rc[i]), 6),
         })
 
-    return results, failed
+    return results, failed, effective_lookback

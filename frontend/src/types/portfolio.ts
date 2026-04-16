@@ -23,6 +23,7 @@ export interface CalculateRequest {
 export interface CalculateResponse {
   results: TickerResult[];
   failed: FailedTicker[];
+  effective_lookback_days: number;
 }
 
 // ── Monte Carlo Simulation types ────────────────────────────
@@ -34,6 +35,7 @@ export interface SimulateRequest {
   total_allocation: number;
   horizon_days: number;
   num_simulations: number;
+  seed?: number | null;
 }
 
 export interface FanChartPoint {
@@ -84,5 +86,8 @@ export interface SimulateResponse {
   garch_params: GarchParams[];
   horizon_days: number;
   num_simulations: number;
+  effective_lookback_days: number;
+  seed: number;
+  cap_trigger_count: number;
   failed: FailedTicker[];
 }

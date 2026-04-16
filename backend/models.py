@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 
 class CalculateRequest(BaseModel):
@@ -27,6 +27,7 @@ class FailedTicker(BaseModel):
 class CalculateResponse(BaseModel):
     results: List[TickerResult]
     failed: List[FailedTicker]
+    effective_lookback_days: int = 0
 
 
 # ── Monte Carlo Simulation models ────────────────────────────
@@ -38,6 +39,7 @@ class SimulateRequest(BaseModel):
     total_allocation: float = Field(default=5000.0, gt=0)
     horizon_days: int = Field(default=126, ge=21, le=504)
     num_simulations: int = Field(default=5000, ge=500, le=25000)
+    seed: Optional[int] = Field(default=None, ge=0, le=2**31 - 1)
 
 
 class FanChartPoint(BaseModel):
@@ -88,4 +90,7 @@ class SimulateResponse(BaseModel):
     garch_params: List[GarchParams]
     horizon_days: int
     num_simulations: int
+    effective_lookback_days: int
+    seed: int
+    cap_trigger_count: int
     failed: List[FailedTicker]
