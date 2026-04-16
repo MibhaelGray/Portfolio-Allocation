@@ -36,6 +36,16 @@ class CalculateResponse(BaseModel):
     correlation: Optional[CorrelationData] = None
 
 
+class CorrelationRequest(BaseModel):
+    tickers: List[str]
+    lookback_days: int = Field(default=63, ge=5, le=504)
+
+
+class CorrelationResponse(BaseModel):
+    correlation: Optional[CorrelationData] = None
+    failed: List[FailedTicker] = []
+
+
 # ── Monte Carlo Simulation models ────────────────────────────
 
 class SimulateRequest(BaseModel):

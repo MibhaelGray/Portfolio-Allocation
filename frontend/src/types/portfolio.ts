@@ -32,6 +32,16 @@ export interface CalculateResponse {
   correlation: CorrelationData | null;
 }
 
+export interface CorrelationRequest {
+  tickers: string[];
+  lookback_days: number;
+}
+
+export interface CorrelationResponse {
+  correlation: CorrelationData | null;
+  failed: FailedTicker[];
+}
+
 // ── Monte Carlo Simulation types ────────────────────────────
 
 export interface SimulateRequest {

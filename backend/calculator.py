@@ -207,11 +207,14 @@ def build_correlation_payload(log_returns: pd.DataFrame) -> Dict:
     Uses the same LW-shrunk covariance as risk parity so both endpoints
     return identical numbers for the same ticker set and lookback.
 
-    Returns {} when fewer than 2 tickers are available.
+    Returns {} when no tickers. For n=1 returns a trivial [[1.0]] matrix
+    so the live-heatmap UI can show a single cell as the portfolio grows.
     """
     tickers = list(log_returns.columns)
-    if len(tickers) < 2:
+    if not tickers:
         return {}
+    if len(tickers) == 1:
+        return {"tickers": tickers, "matrix": [[1.0]]}
     cov = LedoitWolf(assume_centered=True).fit(log_returns.values).covariance_
     corr = _correlation_from_cov(cov)
     order = _cluster_order(corr)

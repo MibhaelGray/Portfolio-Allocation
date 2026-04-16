@@ -47,8 +47,10 @@ export function CorrelationHeatmap({ data }: Props) {
   const n = tickers.length;
   const [hover, setHover] = useState<Cell | null>(null);
 
-  // Sizing. Cells shrink for larger portfolios so the whole thing fits.
-  const cellSize = n <= 6 ? 56 : n <= 8 ? 48 : n <= 12 ? 38 : n <= 16 ? 32 : 26;
+  // Sizing. Single ticker gets an extra-large cell for presence; cells shrink
+  // for larger portfolios so the whole thing fits.
+  const cellSize =
+    n === 1 ? 72 : n <= 6 ? 56 : n <= 8 ? 48 : n <= 12 ? 38 : n <= 16 ? 32 : 26;
   const gap = 2;
   const labelPad = 68; // room for row labels on the left
   const labelGap = 8; // between grid and column labels
@@ -58,6 +60,10 @@ export function CorrelationHeatmap({ data }: Props) {
   const gridTop = 12; // small breathing room at the top
   const svgWidth = labelPad + gridSize + 16;
   const svgHeight = gridTop + gridSize + labelGap + labelBottom;
+
+  // Key the cells on the ticker signature so adding/removing tickers unmounts
+  // the old cells and remounts fresh ones, replaying the entrance animation.
+  const signature = tickers.join('|');
 
   // Pre-compute cells (lower triangle + diagonal only).
   const cells = useMemo(() => {
@@ -83,8 +89,9 @@ export function CorrelationHeatmap({ data }: Props) {
       <div className="heatmap-header">
         <h3>Correlation structure</h3>
         <p className="heatmap-subtitle">
-          Ordered by hierarchical clustering. Adjacent tickers are the most similar;
-          visible blocks of darker cells reveal correlated groups.
+          {n === 1
+            ? 'Add another ticker to see how it correlates with this one.'
+            : 'Ordered by hierarchical clustering. Adjacent tickers are the most similar; visible blocks of darker cells reveal correlated groups.'}
         </p>
       </div>
 
@@ -127,24 +134,34 @@ export function CorrelationHeatmap({ data }: Props) {
             </text>
           ))}
 
-          {/* Cells. */}
+          {/* Cells. Keyed on signature so matrix updates unmount old cells
+              and remount fresh ones, replaying the entrance animation. */}
           {cells.map(({ row, col, rho }) => {
             const x = labelPad + col * (cellSize + gap);
             const y = gridTop + row * (cellSize + gap);
             const isDiag = row === col;
-            const showLabel = !isDiag && Math.abs(rho) > 0.5 && cellSize >= 32;
+            // For n=1 the only cell is the diagonal — show it colored (not muted)
+            // and print the value so the single-ticker case has visual weight.
+            const mutedDiag = isDiag && n > 1;
+            const showLabel =
+              (n === 1) ||
+              (!isDiag && Math.abs(rho) > 0.5 && cellSize >= 32);
+            // Diagonal stagger for entrance: cells further from top-left appear later.
+            const delayMs = (row + col) * 35;
             return (
               <g
-                key={`c-${row}-${col}`}
+                key={`${signature}-${row}-${col}`}
                 onMouseEnter={() => setHover({ row, col, rho })}
                 onMouseLeave={() => setHover(null)}
+                style={{ animationDelay: `${delayMs}ms` }}
+                className="heatmap-cell-group"
               >
                 <rect
                   x={x}
                   y={y}
                   width={cellSize}
                   height={cellSize}
-                  fill={isDiag ? '#ece7dc' : colorFor(rho)}
+                  fill={mutedDiag ? '#ece7dc' : colorFor(rho)}
                   rx={2}
                   ry={2}
                   className="heatmap-cell"

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { TickerManager } from '../components/TickerManager';
 import { SettingsPanel } from '../components/SettingsPanel';
 import { ResultsTable } from '../components/ResultsTable';
@@ -6,8 +6,9 @@ import { ErrorPanel } from '../components/ErrorPanel';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { ExportButton } from '../components/ExportButton';
 import { CorrelationHeatmap } from '../components/CorrelationHeatmap';
-import { calculatePortfolio } from '../api/portfolioApi';
+import { calculatePortfolio, fetchCorrelation } from '../api/portfolioApi';
 import { exportToPdf } from '../utils/exportPdf';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import type { TickerResult, FailedTicker, CorrelationData } from '../types/portfolio';
 
 export default function PortfolioPage() {
@@ -15,11 +16,32 @@ export default function PortfolioPage() {
   const [allocation, setAllocation] = useState(5000);
   const [lookback, setLookback] = useState(63);
   const [results, setResults] = useState<TickerResult[]>([]);
-  const [correlation, setCorrelation] = useState<CorrelationData | null>(null);
+  const [liveCorrelation, setLiveCorrelation] = useState<CorrelationData | null>(null);
   const [failed, setFailed] = useState<FailedTicker[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Live heatmap: debounced fetch on ticker/lookback change so the grid builds
+  // up as the user adds each ticker, before Calculate is pressed.
+  const tickerKey = tickers.join('|');
+  const debouncedKey = useDebouncedValue(tickerKey, 400);
+  const debouncedLookback = useDebouncedValue(lookback, 400);
+
+  useEffect(() => {
+    if (!debouncedKey) {
+      setLiveCorrelation(null);
+      return;
+    }
+    const tks = debouncedKey.split('|');
+    const controller = new AbortController();
+    fetchCorrelation({ tickers: tks, lookback_days: debouncedLookback }, controller.signal)
+      .then(res => setLiveCorrelation(res.correlation))
+      .catch(err => {
+        if (err?.name !== 'AbortError') setLiveCorrelation(null);
+      });
+    return () => controller.abort();
+  }, [debouncedKey, debouncedLookback]);
 
   async function handleCalculate() {
     if (tickers.length === 0) return;
@@ -29,12 +51,11 @@ export default function PortfolioPage() {
     try {
       const res = await calculatePortfolio({ tickers, lookback_days: lookback, total_allocation: allocation });
       setResults(res.results);
-      setCorrelation(res.correlation);
+      if (res.correlation) setLiveCorrelation(res.correlation);
       setFailed(res.failed);
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : String(err));
       setResults([]);
-      setCorrelation(null);
     } finally {
       setLoading(false);
     }
@@ -62,6 +83,12 @@ export default function PortfolioPage() {
       </section>
 
       <ErrorPanel failed={failed} fetchError={fetchError} />
+
+      {liveCorrelation && liveCorrelation.tickers.length >= 1 && (
+        <section className="heatmap-section">
+          <CorrelationHeatmap data={liveCorrelation} />
+        </section>
+      )}
 
       {results.length > 0 ? (
         <div ref={resultsRef}>
@@ -91,18 +118,13 @@ export default function PortfolioPage() {
             </div>
             <ResultsTable data={results} />
           </section>
-          {correlation && correlation.tickers.length >= 2 && (
-            <section className="heatmap-section">
-              <CorrelationHeatmap data={correlation} />
-            </section>
-          )}
           <SimulationPanel
             results={results}
             allocation={allocation}
             lookback={lookback}
           />
         </div>
-      ) : !loading && (
+      ) : !loading && !liveCorrelation && (
         <div className="empty-results">
           <p className="empty-results-text">
             Add tickers and calculate to see risk parity allocations

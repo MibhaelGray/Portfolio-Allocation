@@ -2,7 +2,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import (
     CalculateRequest, CalculateResponse, TickerResult, FailedTicker,
-    CorrelationData, SimulateRequest, SimulateResponse, FanChartPoint,
+    CorrelationData, CorrelationRequest, CorrelationResponse,
+    SimulateRequest, SimulateResponse, FanChartPoint,
     HistogramBin, GarchParams, SimulationSummary,
 )
 from calculator import calculate_portfolio, _fetch_returns_and_metadata, build_correlation_payload
@@ -52,6 +53,46 @@ async def calculate(req: CalculateRequest):
         failed=[FailedTicker(**f) for f in failed_raw],
         effective_lookback_days=effective_lookback,
         correlation=CorrelationData(**correlation_raw) if correlation_raw else None,
+    )
+
+
+@app.post("/api/correlation", response_model=CorrelationResponse)
+async def correlation(req: CorrelationRequest):
+    """
+    Lightweight endpoint for the live heatmap. Returns correlation for whatever
+    tickers validate — including n=1 (trivial [[1.0]]) so the UI can render
+    the first cell immediately. Skips the optimizer and GARCH fitting.
+    """
+    if not req.tickers:
+        return CorrelationResponse(correlation=None, failed=[])
+
+    seen = set()
+    deduped = []
+    for t in req.tickers:
+        key = t.strip().upper()
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append(t.strip())
+
+    if not deduped:
+        return CorrelationResponse(correlation=None, failed=[])
+
+    calendar_days = int(req.lookback_days * (365 / 252)) + 90
+    end_date = datetime.today().strftime("%Y-%m-%d")
+    start_date = (datetime.today() - timedelta(days=calendar_days)).strftime("%Y-%m-%d")
+
+    log_returns, _metadata, failed_raw = _fetch_returns_and_metadata(
+        deduped, req.lookback_days, start_date, end_date
+    )
+    failed = [FailedTicker(**f) for f in failed_raw]
+
+    if log_returns.empty:
+        return CorrelationResponse(correlation=None, failed=failed)
+
+    correlation_raw = build_correlation_payload(log_returns)
+    return CorrelationResponse(
+        correlation=CorrelationData(**correlation_raw) if correlation_raw else None,
+        failed=failed,
     )
 
 

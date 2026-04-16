@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { simulatePortfolio } from '../api/portfolioApi';
+import React, { useState, useRef, useEffect } from 'react';
+import { simulatePortfolio, fetchCorrelation } from '../api/portfolioApi';
 import { HoldingsEditor, type Holding } from '../components/HoldingsEditor';
 import { CsvImportModal } from '../components/CsvImportModal';
 import { FanChart } from '../components/FanChart';
@@ -9,7 +9,8 @@ import { GarchTable } from '../components/GarchTable';
 import { CorrelationHeatmap } from '../components/CorrelationHeatmap';
 import { ExportButton } from '../components/ExportButton';
 import { exportToPdf } from '../utils/exportPdf';
-import type { SimulateResponse } from '../types/portfolio';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
+import type { SimulateResponse, CorrelationData } from '../types/portfolio';
 
 const HORIZON_OPTIONS = [
   { label: '6 months', value: 126 },
@@ -43,6 +44,7 @@ export default function MyPortfolioPage() {
   const [horizon, setHorizon] = useState(126);
   const [numSims, setNumSims] = useState(5000);
   const [simResult, setSimResult] = useState<SimulateResponse | null>(null);
+  const [liveCorrelation, setLiveCorrelation] = useState<CorrelationData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +57,31 @@ export default function MyPortfolioPage() {
   const hasDuplicates = new Set(tickers).size !== tickers.length;
   const canSubmit = validHoldings.length >= 1 && total > 0 && !hasDuplicates && !loading;
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Live heatmap: fire on any non-empty ticker input (amount not required for
+  // correlation). Dedupe and drop blanks before hashing so in-progress typing
+  // doesn't thrash the endpoint.
+  const liveTickers = Array.from(new Set(
+    holdings.map(h => h.ticker.trim().toUpperCase()).filter(t => t.length > 0)
+  ));
+  const liveKey = liveTickers.join('|');
+  const debouncedKey = useDebouncedValue(liveKey, 400);
+  const debouncedLookback = useDebouncedValue(lookback, 400);
+
+  useEffect(() => {
+    if (!debouncedKey) {
+      setLiveCorrelation(null);
+      return;
+    }
+    const tks = debouncedKey.split('|');
+    const controller = new AbortController();
+    fetchCorrelation({ tickers: tks, lookback_days: debouncedLookback }, controller.signal)
+      .then(res => setLiveCorrelation(res.correlation))
+      .catch(err => {
+        if (err?.name !== 'AbortError') setLiveCorrelation(null);
+      });
+    return () => controller.abort();
+  }, [debouncedKey, debouncedLookback]);
 
   async function handleSimulate() {
     setLoading(true);
@@ -172,6 +199,12 @@ export default function MyPortfolioPage() {
         </div>
       </section>
 
+      {liveCorrelation && liveCorrelation.tickers.length >= 1 && (
+        <section className="heatmap-section">
+          <CorrelationHeatmap data={liveCorrelation} />
+        </section>
+      )}
+
       {loading && (
         <p className="sim-loading">
           Fitting GARCH models and running {numSims.toLocaleString()} paths — this may take 10–20 seconds.
@@ -211,11 +244,6 @@ export default function MyPortfolioPage() {
             totalAllocation={total}
             horizonDays={simResult.horizon_days}
           />
-          {simResult.correlation && simResult.correlation.tickers.length >= 2 && (
-            <section className="heatmap-section heatmap-section--embedded">
-              <CorrelationHeatmap data={simResult.correlation} />
-            </section>
-          )}
           <FanChart data={simResult.fan_chart} totalAllocation={total} />
           <TerminalHistogram data={simResult.histogram} totalAllocation={total} />
           <GarchTable params={simResult.garch_params} />
