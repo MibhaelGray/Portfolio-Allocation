@@ -6,6 +6,7 @@ import { FanChart } from '../components/FanChart';
 import { TerminalHistogram } from '../components/TerminalHistogram';
 import { SimulationStats } from '../components/SimulationStats';
 import { GarchTable } from '../components/GarchTable';
+import { CorrelationHeatmap } from '../components/CorrelationHeatmap';
 import { ExportButton } from '../components/ExportButton';
 import { exportToPdf } from '../utils/exportPdf';
 import type { SimulateResponse } from '../types/portfolio';
@@ -210,6 +211,11 @@ export default function MyPortfolioPage() {
             totalAllocation={total}
             horizonDays={simResult.horizon_days}
           />
+          {simResult.correlation && simResult.correlation.tickers.length >= 2 && (
+            <section className="heatmap-section heatmap-section--embedded">
+              <CorrelationHeatmap data={simResult.correlation} />
+            </section>
+          )}
           <FanChart data={simResult.fan_chart} totalAllocation={total} />
           <TerminalHistogram data={simResult.histogram} totalAllocation={total} />
           <GarchTable params={simResult.garch_params} />

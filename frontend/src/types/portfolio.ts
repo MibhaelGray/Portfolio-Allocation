@@ -20,10 +20,16 @@ export interface CalculateRequest {
   total_allocation: number;
 }
 
+export interface CorrelationData {
+  tickers: string[];
+  matrix: number[][];
+}
+
 export interface CalculateResponse {
   results: TickerResult[];
   failed: FailedTicker[];
   effective_lookback_days: number;
+  correlation: CorrelationData | null;
 }
 
 // ── Monte Carlo Simulation types ────────────────────────────
@@ -90,4 +96,5 @@ export interface SimulateResponse {
   seed: number;
   cap_trigger_count: number;
   failed: FailedTicker[];
+  correlation: CorrelationData | null;
 }

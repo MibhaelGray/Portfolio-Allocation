@@ -24,10 +24,16 @@ class FailedTicker(BaseModel):
     reason: str
 
 
+class CorrelationData(BaseModel):
+    tickers: List[str]  # ticker order matching rows/cols of matrix (already clustered)
+    matrix: List[List[float]]  # square correlation matrix, values in [-1, 1]
+
+
 class CalculateResponse(BaseModel):
     results: List[TickerResult]
     failed: List[FailedTicker]
     effective_lookback_days: int = 0
+    correlation: Optional[CorrelationData] = None
 
 
 # ── Monte Carlo Simulation models ────────────────────────────
@@ -94,3 +100,4 @@ class SimulateResponse(BaseModel):
     seed: int
     cap_trigger_count: int
     failed: List[FailedTicker]
+    correlation: Optional[CorrelationData] = None

@@ -976,3 +976,139 @@ tr:last-child td { border-bottom: 2px solid #1a1a1a; }
     align-items: stretch;
   }
 }
+
+/* ── Correlation heatmap ────────────────────── */
+.heatmap-section {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid #d4d0c8;
+}
+
+/* When embedded inside the simulation results section, share the same inner
+   rhythm as siblings (fan chart, histogram) instead of adding another divider. */
+.heatmap-section--embedded {
+  margin-top: 2rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.heatmap-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.heatmap-header h3 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #111;
+  margin-bottom: 0.35rem;
+}
+
+.heatmap-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  color: #8a8279;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.heatmap-grid-wrap {
+  margin: 0.25rem 0 0.25rem -0.25rem;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.heatmap-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  fill: #8a8279;
+  transition: fill 0.12s ease;
+  user-select: none;
+}
+
+.heatmap-label.is-active {
+  fill: #1a1a1a;
+  font-weight: 600;
+}
+
+.heatmap-cell {
+  transition: opacity 0.12s ease, stroke-width 0.12s ease;
+  stroke: transparent;
+  stroke-width: 0;
+  cursor: default;
+}
+
+.heatmap-container svg g:hover .heatmap-cell {
+  stroke: #1a1a1a;
+  stroke-width: 1.5;
+}
+
+.heatmap-cell-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.heatmap-readout {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.82rem;
+  color: #3a3530;
+  min-height: 1.4em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.005em;
+}
+
+.heatmap-readout strong {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.heatmap-readout-rho {
+  margin-left: 0.75rem;
+  color: #6b4423;
+  font-weight: 500;
+}
+
+.heatmap-readout-hint {
+  color: #a8a098;
+  font-style: italic;
+  font-size: 0.78rem;
+}
+
+.heatmap-legend {
+  margin-top: 0.25rem;
+  width: 260px;
+  max-width: 100%;
+}
+
+.heatmap-legend-bar {
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    rgb(74, 88, 98) 0%,
+    rgb(165, 168, 168) 25%,
+    rgb(245, 242, 235) 50%,
+    rgb(176, 145, 117) 75%,
+    rgb(107, 68, 35) 100%
+  );
+}
+
+.heatmap-legend-stops {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.7rem;
+  color: #8a8279;
+  font-variant-numeric: tabular-nums;
+}

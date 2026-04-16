@@ -5,6 +5,8 @@ import yfinance as yf
 import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
+from scipy.cluster.hierarchy import linkage, leaves_list
+from scipy.spatial.distance import squareform
 from sklearn.covariance import LedoitWolf
 from datetime import datetime, timedelta
 from typing import Tuple, List, Dict
@@ -172,19 +174,71 @@ def _risk_parity_weights(cov_matrix: np.ndarray) -> np.ndarray:
     return w0
 
 
+def _correlation_from_cov(cov_matrix: np.ndarray) -> np.ndarray:
+    """Derive correlation matrix from covariance. Scale by 1/(σ_i σ_j)."""
+    vols = np.sqrt(np.diag(cov_matrix))
+    vols = np.maximum(vols, 1e-12)
+    corr = cov_matrix / np.outer(vols, vols)
+    # Clip numerical fuzz outside [-1, 1] and hard-pin the diagonal.
+    corr = np.clip(corr, -1.0, 1.0)
+    np.fill_diagonal(corr, 1.0)
+    return corr
+
+
+def _cluster_order(corr: np.ndarray) -> np.ndarray:
+    """
+    Hierarchical clustering (average linkage) on correlation distance.
+    Returns a permutation of indices that places similar assets adjacent.
+    """
+    n = corr.shape[0]
+    if n <= 2:
+        return np.arange(n)
+    # Distance = √(2(1 - ρ)): standard correlation-to-distance transform.
+    dist = np.sqrt(np.maximum(2.0 * (1.0 - corr), 0.0))
+    np.fill_diagonal(dist, 0.0)
+    condensed = squareform(dist, checks=False)
+    Z = linkage(condensed, method="average")
+    return leaves_list(Z)
+
+
+def build_correlation_payload(log_returns: pd.DataFrame) -> Dict:
+    """
+    Build the API-shaped correlation dict from aligned log returns.
+    Uses the same LW-shrunk covariance as risk parity so both endpoints
+    return identical numbers for the same ticker set and lookback.
+
+    Returns {} when fewer than 2 tickers are available.
+    """
+    tickers = list(log_returns.columns)
+    if len(tickers) < 2:
+        return {}
+    cov = LedoitWolf(assume_centered=True).fit(log_returns.values).covariance_
+    corr = _correlation_from_cov(cov)
+    order = _cluster_order(corr)
+    ordered_tickers = [tickers[i] for i in order]
+    ordered_corr = corr[np.ix_(order, order)]
+    return {
+        "tickers": ordered_tickers,
+        "matrix": [[round(float(v), 4) for v in row] for row in ordered_corr],
+    }
+
+
 def calculate_portfolio(
     tickers: List[str],
     lookback_days: int,
     total_allocation: float,
-) -> Tuple[List[Dict], List[Dict], int]:
+) -> Tuple[List[Dict], List[Dict], int, Dict]:
     """
-    Returns (results, failed, effective_lookback_days).
+    Returns (results, failed, effective_lookback_days, correlation).
     Uses risk parity (equal risk contribution) weighting via the full
     covariance matrix, accounting for both volatility and correlations.
 
     effective_lookback_days is the actual number of aligned return observations
     used — may be less than requested lookback_days if total available history
     is shorter.
+
+    correlation: dict with 'tickers' (clustered order) and 'matrix' (2D list).
+    Empty dict if fewer than 2 tickers succeeded.
     """
     # Buffer +90 calendar days to absorb weekends, holidays, and cross-exchange alignment loss.
     calendar_days = int(lookback_days * (365 / 252)) + 90
@@ -196,7 +250,7 @@ def calculate_portfolio(
     )
 
     if log_returns.empty or not metadata:
-        return [], failed, 0
+        return [], failed, 0, {}
 
     good_tickers = list(log_returns.columns)
     effective_lookback = int(log_returns.shape[0])
@@ -229,4 +283,7 @@ def calculate_portfolio(
             "risk_contribution": round(float(rc[i]), 6),
         })
 
-    return results, failed, effective_lookback
+    # Correlation matrix + hierarchical clustering order, for the heatmap.
+    correlation = build_correlation_payload(log_returns)
+
+    return results, failed, effective_lookback, correlation

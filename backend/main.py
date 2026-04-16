@@ -2,10 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import (
     CalculateRequest, CalculateResponse, TickerResult, FailedTicker,
-    SimulateRequest, SimulateResponse, FanChartPoint, HistogramBin,
-    GarchParams, SimulationSummary,
+    CorrelationData, SimulateRequest, SimulateResponse, FanChartPoint,
+    HistogramBin, GarchParams, SimulationSummary,
 )
-from calculator import calculate_portfolio, _fetch_returns_and_metadata
+from calculator import calculate_portfolio, _fetch_returns_and_metadata, build_correlation_payload
 from simulator import fit_garch_models, compute_residual_correlation, simulate_paths, compute_simulation_statistics, build_garch_params
 import numpy as np
 from datetime import datetime, timedelta
@@ -43,7 +43,7 @@ async def calculate(req: CalculateRequest):
             seen.add(key)
             deduped.append(t.strip())
 
-    results_raw, failed_raw, effective_lookback = calculate_portfolio(
+    results_raw, failed_raw, effective_lookback, correlation_raw = calculate_portfolio(
         deduped, req.lookback_days, req.total_allocation
     )
 
@@ -51,6 +51,7 @@ async def calculate(req: CalculateRequest):
         results=[TickerResult(**r) for r in results_raw],
         failed=[FailedTicker(**f) for f in failed_raw],
         effective_lookback_days=effective_lookback,
+        correlation=CorrelationData(**correlation_raw) if correlation_raw else None,
     )
 
 
@@ -107,6 +108,9 @@ async def simulate(req: SimulateRequest):
     else:
         raise HTTPException(status_code=422, detail="No valid tickers remaining after data fetch")
 
+    # Correlation heatmap payload — uses the aligned log_returns we already fetched.
+    correlation_raw = build_correlation_payload(log_returns[good_tickers])
+
     # Fit GARCH models
     garch_results = fit_garch_models(log_returns)
 
@@ -137,4 +141,5 @@ async def simulate(req: SimulateRequest):
         seed=seed_used,
         cap_trigger_count=cap_trigger_count,
         failed=failed,
+        correlation=CorrelationData(**correlation_raw) if correlation_raw else None,
     )

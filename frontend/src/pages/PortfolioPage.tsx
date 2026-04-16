@@ -5,15 +5,17 @@ import { ResultsTable } from '../components/ResultsTable';
 import { ErrorPanel } from '../components/ErrorPanel';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { ExportButton } from '../components/ExportButton';
+import { CorrelationHeatmap } from '../components/CorrelationHeatmap';
 import { calculatePortfolio } from '../api/portfolioApi';
 import { exportToPdf } from '../utils/exportPdf';
-import type { TickerResult, FailedTicker } from '../types/portfolio';
+import type { TickerResult, FailedTicker, CorrelationData } from '../types/portfolio';
 
 export default function PortfolioPage() {
   const [tickers, setTickers] = useState<string[]>([]);
   const [allocation, setAllocation] = useState(5000);
   const [lookback, setLookback] = useState(63);
   const [results, setResults] = useState<TickerResult[]>([]);
+  const [correlation, setCorrelation] = useState<CorrelationData | null>(null);
   const [failed, setFailed] = useState<FailedTicker[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,10 +29,12 @@ export default function PortfolioPage() {
     try {
       const res = await calculatePortfolio({ tickers, lookback_days: lookback, total_allocation: allocation });
       setResults(res.results);
+      setCorrelation(res.correlation);
       setFailed(res.failed);
     } catch (err) {
       setFetchError(err instanceof Error ? err.message : String(err));
       setResults([]);
+      setCorrelation(null);
     } finally {
       setLoading(false);
     }
@@ -87,6 +91,11 @@ export default function PortfolioPage() {
             </div>
             <ResultsTable data={results} />
           </section>
+          {correlation && correlation.tickers.length >= 2 && (
+            <section className="heatmap-section">
+              <CorrelationHeatmap data={correlation} />
+            </section>
+          )}
           <SimulationPanel
             results={results}
             allocation={allocation}
