@@ -108,3 +108,30 @@ export interface SimulateResponse {
   failed: FailedTicker[];
   correlation: CorrelationData | null;
 }
+
+// ── Macro Dashboard types ────────────────────────────
+
+export interface YieldPoint {
+  tenor: string;
+  yield_pct: number;
+  change_bps: number;
+}
+
+export interface SpreadPoint {
+  name: string;
+  value_bps: number;
+  change_bps: number;
+  inverted: boolean;
+}
+
+export interface YieldSnapshotResponse {
+  yields: YieldPoint[];
+  spreads: SpreadPoint[];
+  as_of: string;
+  failed: string[];
+}
+
+export interface YieldHistoryResponse {
+  dates: string[];
+  series: Record<string, (number | null)[]>;
+}

@@ -12,6 +12,75 @@ from datetime import datetime, timedelta
 from typing import Tuple, List, Dict
 
 
+def _fetch_fx_series(
+    currencies: List[str],
+    price_index: pd.DatetimeIndex,
+    start_date: str,
+    end_date: str,
+) -> Dict[str, pd.Series]:
+    """
+    Build a {currency -> Series of USD-per-unit} map aligned to price_index.
+
+    Forward/back-fills FX gaps so weekday equity prices always have a rate.
+    USD maps to a constant 1.0 series. London pence (GBp/GBX) is normalized to
+    GBP — the constant 1/100 scale doesn't affect log returns; only the FX
+    volatility component matters for the covariance matrix.
+
+    If a given FX series fails to download, falls back to 1.0 — that asset's
+    USD vol will be missing the FX component, but the system stays operational.
+    """
+    one = pd.Series(1.0, index=price_index)
+    fx_map: Dict[str, pd.Series] = {}
+
+    norm = {c: ("GBP" if c in ("GBp", "GBX") else c) for c in set(currencies)}
+    needed = sorted({n for n in norm.values() if n != "USD"})
+
+    if not needed:
+        for c in set(currencies):
+            fx_map[c] = one
+        return fx_map
+
+    fx_tickers = [f"{c}USD=X" for c in needed]
+    try:
+        fx_raw = yf.download(
+            fx_tickers,
+            start=start_date,
+            end=end_date,
+            progress=False,
+            auto_adjust=True,
+        )
+    except Exception:
+        fx_raw = None
+
+    fx_close = pd.DataFrame()
+    if fx_raw is not None and not fx_raw.empty:
+        if len(fx_tickers) == 1:
+            if isinstance(fx_raw.columns, pd.MultiIndex):
+                fx_close = fx_raw[("Close", fx_tickers[0])].to_frame(name=fx_tickers[0])
+            else:
+                fx_close = fx_raw["Close"].to_frame(name=fx_tickers[0])
+        else:
+            if isinstance(fx_raw.columns, pd.MultiIndex):
+                fx_close = fx_raw["Close"]
+            else:
+                fx_close = fx_raw[["Close"]].rename(columns={"Close": fx_tickers[0]})
+
+        fx_close = fx_close.reindex(price_index).ffill().bfill()
+
+    for c in set(currencies):
+        n = norm[c]
+        if n == "USD":
+            fx_map[c] = one
+            continue
+        ticker = f"{n}USD=X"
+        if not fx_close.empty and ticker in fx_close.columns and not fx_close[ticker].isna().all():
+            fx_map[c] = fx_close[ticker]
+        else:
+            fx_map[c] = one
+
+    return fx_map
+
+
 def _fetch_returns_and_metadata(
     tickers: List[str],
     lookback_days: int,
@@ -19,11 +88,15 @@ def _fetch_returns_and_metadata(
     end_date: str,
 ) -> Tuple[pd.DataFrame, Dict[str, Dict], List[Dict]]:
     """
-    Batch-download prices, compute aligned log returns, and fetch metadata.
+    Batch-download prices, convert to USD, compute aligned USD log returns,
+    and fetch metadata.
 
     Returns:
-      - log_returns: DataFrame (lookback_days x N) of aligned log returns
-      - metadata: dict of ticker -> {name, currency, last_px}
+      - log_returns: DataFrame (lookback_days x N) of USD-perspective aligned
+        log returns. For non-USD assets this includes the FX leg, so the
+        resulting covariance reflects the risk a USD investor actually bears.
+      - metadata: dict of ticker -> {name, currency, last_px}. last_px is in
+        the asset's native currency (matches what the exchange displays).
       - failed: list of {"ticker": ..., "reason": ...}
     """
     failed = []
@@ -70,11 +143,38 @@ def _fetch_returns_and_metadata(
 
     prices = prices[good_tickers]
 
-    # Compute log returns. Align across good_tickers FIRST (drop any-NaN rows for
-    # cross-exchange calendar gaps), THEN take tail(lookback_days). This guarantees
-    # the user gets lookback_days of aligned observations whenever enough history exists —
-    # rather than silently shrinking the window when one ticker has gappy data.
-    log_returns_raw = np.log(prices / prices.shift(1)).dropna(how="all")
+    # Fetch metadata (name, native currency, native last price) BEFORE log returns
+    # — we need each ticker's currency to fetch the right FX series.
+    metadata = {}
+    for t in good_tickers:
+        last_px = float(prices[t].dropna().iloc[-1])
+        try:
+            info = yf.Ticker(t).fast_info
+            name = getattr(info, "company_name", None) or t
+            currency = getattr(info, "currency", None) or "USD"
+        except Exception:
+            name = t
+            currency = "USD"
+        metadata[t] = {"name": name, "currency": currency, "last_px": last_px}
+
+    # Convert each ticker's price series to USD. For a USD investor, the
+    # economically meaningful return is on (native_price × FX_to_USD); using
+    # native-currency returns silently strips out the FX volatility leg.
+    fx_map = _fetch_fx_series(
+        currencies=[metadata[t]["currency"] for t in good_tickers],
+        price_index=prices.index,
+        start_date=start_date,
+        end_date=end_date,
+    )
+    usd_prices = pd.DataFrame(index=prices.index)
+    for t in good_tickers:
+        usd_prices[t] = prices[t] * fx_map[metadata[t]["currency"]]
+
+    # Compute log returns from USD-converted prices. Align across good_tickers
+    # FIRST (drop any-NaN rows for cross-exchange calendar gaps), THEN take
+    # tail(lookback_days) — guarantees the user gets lookback_days of aligned
+    # observations whenever enough history exists.
+    log_returns_raw = np.log(usd_prices / usd_prices.shift(1)).dropna(how="all")
     log_returns = log_returns_raw[good_tickers].dropna().tail(lookback_days)
 
     # Check each ticker still has enough aligned rows
@@ -91,19 +191,7 @@ def _fetch_returns_and_metadata(
         # Re-align with the remaining tickers — may widen the window if the removed
         # ticker was forcing NaN drops.
         log_returns = log_returns_raw[good_tickers].dropna().tail(lookback_days)
-
-    # Fetch metadata (name, currency, last price) for each good ticker
-    metadata = {}
-    for t in good_tickers:
-        last_px = float(prices[t].dropna().iloc[-1])
-        try:
-            info = yf.Ticker(t).fast_info
-            name = getattr(info, "company_name", None) or t
-            currency = getattr(info, "currency", None) or "USD"
-        except Exception:
-            name = t
-            currency = "USD"
-        metadata[t] = {"name": name, "currency": currency, "last_px": last_px}
+        metadata = {t: metadata[t] for t in good_tickers}
 
     return log_returns, metadata, failed
 

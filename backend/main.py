@@ -1,13 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from models import (
     CalculateRequest, CalculateResponse, TickerResult, FailedTicker,
     CorrelationData, CorrelationRequest, CorrelationResponse,
     SimulateRequest, SimulateResponse, FanChartPoint,
     HistogramBin, GarchParams, SimulationSummary,
+    YieldSnapshotResponse, YieldHistoryResponse,
 )
 from calculator import calculate_portfolio, _fetch_returns_and_metadata, build_correlation_payload
 from simulator import fit_garch_models, compute_residual_correlation, simulate_paths, compute_simulation_statistics, build_garch_params
+import macro
 import numpy as np
 from datetime import datetime, timedelta
 
@@ -184,3 +186,13 @@ async def simulate(req: SimulateRequest):
         failed=failed,
         correlation=CorrelationData(**correlation_raw) if correlation_raw else None,
     )
+
+
+@app.get("/api/macro/yields/snapshot", response_model=YieldSnapshotResponse)
+async def yields_snapshot():
+    return macro.get_yield_snapshot()
+
+
+@app.get("/api/macro/yields/history", response_model=YieldHistoryResponse)
+async def yields_history(days: int = Query(252, ge=21, le=2520)):
+    return macro.get_yield_history(days)

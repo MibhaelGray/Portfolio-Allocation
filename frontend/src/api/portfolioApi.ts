@@ -2,6 +2,7 @@ import type {
   CalculateRequest, CalculateResponse,
   SimulateRequest, SimulateResponse,
   CorrelationRequest, CorrelationResponse,
+  YieldSnapshotResponse, YieldHistoryResponse,
 } from '../types/portfolio';
 
 export async function calculatePortfolio(req: CalculateRequest): Promise<CalculateResponse> {
@@ -69,4 +70,34 @@ export async function fetchCorrelation(
   }
 
   return response.json() as Promise<CorrelationResponse>;
+}
+
+export async function fetchYieldSnapshot(): Promise<YieldSnapshotResponse> {
+  const response = await fetch('/api/macro/yields/snapshot');
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const err = await response.json();
+      detail = err?.detail ?? detail;
+    } catch {
+      // ignore parse error
+    }
+    throw new Error(detail);
+  }
+  return response.json() as Promise<YieldSnapshotResponse>;
+}
+
+export async function fetchYieldHistory(days = 252): Promise<YieldHistoryResponse> {
+  const response = await fetch(`/api/macro/yields/history?days=${days}`);
+  if (!response.ok) {
+    let detail = `HTTP ${response.status}`;
+    try {
+      const err = await response.json();
+      detail = err?.detail ?? detail;
+    } catch {
+      // ignore parse error
+    }
+    throw new Error(detail);
+  }
+  return response.json() as Promise<YieldHistoryResponse>;
 }

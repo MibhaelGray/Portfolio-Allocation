@@ -262,9 +262,13 @@ export default function MethodologyPage() {
           Consider setting a minimum position floor or reducing the number of names.
         </li>
         <li>
-          <strong>Currency effects.</strong> For international stocks (priced in EUR, KRW, etc.),
-          the vol calculation uses local-currency returns. FX volatility is not captured, which
-          means your USD-denominated risk may differ from what the numbers suggest.
+          <strong>Currency conversion.</strong> All non-USD prices are converted to USD before
+          log returns are computed (using each currency&rsquo;s daily {`{CCY}USD=X`} rate from
+          Yahoo Finance), so the covariance matrix and resulting risk parity weights reflect the
+          risk a USD investor actually bears&mdash;including the FX volatility leg. London pence
+          quotes (GBp/GBX) are treated as GBP since the constant 1/100 scale doesn&rsquo;t affect
+          log returns. Last price is still displayed in the asset&rsquo;s native currency to match
+          what the exchange shows.
         </li>
         <li>
           <strong>No rebalancing signal.</strong> This tool gives you a snapshot. In practice,

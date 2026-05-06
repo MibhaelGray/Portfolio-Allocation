@@ -1127,3 +1127,113 @@ tr:last-child td { border-bottom: 2px solid #1a1a1a; }
   color: #8a8279;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Macro dashboard ────────────────────── */
+.macro-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.macro-header h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem 0;
+  color: #1a1a1a;
+}
+
+.macro-header .as-of {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  color: #8a8279;
+}
+
+.macro-header .calculate-btn {
+  align-self: center;
+  padding: 0.65rem 1.4rem;
+  min-height: auto;
+}
+
+.stats-grid--five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.stat-card.spread-card {
+  position: relative;
+}
+
+.stat-card.spread-card--inverted {
+  border-left: 3px solid #c0392b;
+  background: #fdf2f0;
+}
+
+.inverted-pill {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.4rem;
+  background: #c0392b;
+  color: #faf9f6;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.stat-card.stat-card--missing .stat-value {
+  color: #b8b3aa;
+}
+
+.change-up {
+  color: #2e7d32;
+}
+
+.change-down {
+  color: #c0392b;
+}
+
+.change-flat {
+  color: #8a8279;
+}
+
+.error-panel--soft {
+  background: #f7f3ea;
+  border-left-color: #b8a378;
+}
+
+.error-panel--soft .failed-header {
+  color: #8a6d3b;
+  margin: 0;
+}
+
+.spread-note {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  color: #8a8279;
+  font-style: italic;
+  margin-top: 0.6rem;
+}
+
+.yield-curve-chart {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 800px) {
+  .stats-grid--five {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid--five {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .macro-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

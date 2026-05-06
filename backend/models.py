@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 class CalculateRequest(BaseModel):
@@ -111,3 +111,30 @@ class SimulateResponse(BaseModel):
     cap_trigger_count: int
     failed: List[FailedTicker]
     correlation: Optional[CorrelationData] = None
+
+
+# ── Macro Dashboard models ────────────────────────────
+
+class YieldPoint(BaseModel):
+    tenor: str           # "3M" | "2Y" | "5Y" | "10Y" | "30Y"
+    yield_pct: float
+    change_bps: float
+
+
+class SpreadPoint(BaseModel):
+    name: str            # "2s10s" | "3m10s" | "5s30s"
+    value_bps: float
+    change_bps: float
+    inverted: bool
+
+
+class YieldSnapshotResponse(BaseModel):
+    yields: List[YieldPoint]
+    spreads: List[SpreadPoint]
+    as_of: str
+    failed: List[str] = []
+
+
+class YieldHistoryResponse(BaseModel):
+    dates: List[str]
+    series: Dict[str, List[Optional[float]]]
