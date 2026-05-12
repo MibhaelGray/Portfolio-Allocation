@@ -1238,3 +1238,55 @@ tr:last-child td { border-bottom: 2px solid #1a1a1a; }
 .gex-flip--below {
   color: #c0392b;
 }
+
+.regime-guide {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1.4rem;
+}
+
+.regime-guide__item {
+  border-left: 3px solid #d6d2c8;
+  padding: 0.1rem 0 0.2rem 0.9rem;
+}
+
+.regime-guide__item--suppressing {
+  border-left-color: #2e7d32;
+}
+
+.regime-guide__item--amplifying {
+  border-left-color: #c0392b;
+}
+
+.regime-guide__item h4 {
+  font-family: 'EB Garamond', serif;
+  font-size: 1.05rem;
+  font-weight: 500;
+  font-style: italic;
+  margin: 0 0 0.35rem 0;
+  color: #2a2520;
+}
+
+.regime-guide__item--suppressing h4 {
+  color: #2e7d32;
+}
+
+.regime-guide__item--amplifying h4 {
+  color: #c0392b;
+}
+
+.regime-guide__item p {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #5d564d;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .regime-guide {
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+}

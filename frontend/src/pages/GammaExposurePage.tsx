@@ -111,6 +111,26 @@ export default function GammaExposurePage() {
           <div className="stats-grid stats-grid--five">
             {gex.tickers.map(g => <GexCard key={g.symbol} g={g} />)}
           </div>
+
+          <div className="regime-guide">
+            <div className="regime-guide__item regime-guide__item--suppressing">
+              <h4>Positive GEX — vol-suppressing</h4>
+              <p>
+                Dealers are net long gamma. To stay delta-neutral they sell into rallies
+                and buy into dips, damping realized volatility. Markets tend to mean-revert
+                and pin near large strikes; intraday ranges compress.
+              </p>
+            </div>
+            <div className="regime-guide__item regime-guide__item--amplifying">
+              <h4>Negative GEX — vol-amplifying</h4>
+              <p>
+                Dealers are net short gamma. Their hedges run with the move — buying as
+                price rises, selling as it falls — which feeds back into the trend. Expect
+                bigger ranges, faster trends, and heightened vulnerability to gap moves.
+              </p>
+            </div>
+          </div>
+
           <p className="spread-note">
             Approximation. Sign and regime are reliable; absolute magnitudes are approximate
             (cannot distinguish dealer-side from customer-side without paid data). Excludes 0DTE,
