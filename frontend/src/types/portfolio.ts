@@ -109,29 +109,22 @@ export interface SimulateResponse {
   correlation: CorrelationData | null;
 }
 
-// ── Macro Dashboard types ────────────────────────────
+// ── Market Gamma Exposure types ────────────────────────────
 
-export interface YieldPoint {
-  tenor: string;
-  yield_pct: number;
-  change_bps: number;
+export type GexRegime = 'vol_suppressing' | 'vol_amplifying';
+
+export interface GexTickerPoint {
+  symbol: string;
+  spot: number;
+  total_gex: number;
+  regime: GexRegime;
+  zero_gamma_flip: number | null;
+  spot_minus_flip: number | null;
+  contracts_included: number;
 }
 
-export interface SpreadPoint {
-  name: string;
-  value_bps: number;
-  change_bps: number;
-  inverted: boolean;
-}
-
-export interface YieldSnapshotResponse {
-  yields: YieldPoint[];
-  spreads: SpreadPoint[];
+export interface GexSnapshotResponse {
+  tickers: GexTickerPoint[];
   as_of: string;
   failed: string[];
-}
-
-export interface YieldHistoryResponse {
-  dates: string[];
-  series: Record<string, (number | null)[]>;
 }

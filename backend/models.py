@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 
 class CalculateRequest(BaseModel):
@@ -113,28 +113,19 @@ class SimulateResponse(BaseModel):
     correlation: Optional[CorrelationData] = None
 
 
-# ── Macro Dashboard models ────────────────────────────
+# ── Market Gamma Exposure models ────────────────────────────
 
-class YieldPoint(BaseModel):
-    tenor: str           # "3M" | "2Y" | "5Y" | "10Y" | "30Y"
-    yield_pct: float
-    change_bps: float
-
-
-class SpreadPoint(BaseModel):
-    name: str            # "2s10s" | "3m10s" | "5s30s"
-    value_bps: float
-    change_bps: float
-    inverted: bool
+class GexTickerPoint(BaseModel):
+    symbol: str
+    spot: float
+    total_gex: float                                # dollars per 1% spot move
+    regime: str                                     # "vol_suppressing" | "vol_amplifying"
+    zero_gamma_flip: Optional[float] = None
+    spot_minus_flip: Optional[float] = None
+    contracts_included: int
 
 
-class YieldSnapshotResponse(BaseModel):
-    yields: List[YieldPoint]
-    spreads: List[SpreadPoint]
+class GexSnapshotResponse(BaseModel):
+    tickers: List[GexTickerPoint]
     as_of: str
     failed: List[str] = []
-
-
-class YieldHistoryResponse(BaseModel):
-    dates: List[str]
-    series: Dict[str, List[Optional[float]]]
